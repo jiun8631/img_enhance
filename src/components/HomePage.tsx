@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from 'react'
 import { useDropzone } from 'react-dropzone'
-import { Upload, Image as ImageIcon, Palette, Loader2 } from 'lucide-react'
+import { Upload, Image as ImageIcon, Palette, Loader2, Copy, Download } from 'lucide-react'  // 添加 Copy 和 Download 圖標
 import { toast } from 'react-hot-toast'
 import chroma from 'chroma-js'
 
@@ -54,13 +54,14 @@ export default function HomePage() {
 
       const imageData = ctx.getImageData(0, 0, img.width, img.height).data
       const colors = []
-      for (let i = 0; i < imageData.length; i += 4) {
+      const step = Math.floor(imageData.length / 4 / 100)  // 取樣 100 點，避免重複
+      for (let i = 0; i < imageData.length; i += step * 4) {
         const color = chroma(imageData[i], imageData[i+1], imageData[i+2]).hex()
-        colors.push(color)
+        if (!colors.includes(color)) colors.push(color)  // 確保獨特
       }
 
-      // 提取 8 種獨特顏色 (簡單隨機取樣)
-      const uniqueColors = [...new Set(colors)].slice(0, 8)
+      // 生成 8 種顏色 + 漸變變體
+      const uniqueColors = colors.slice(0, 8)
       setPalette(uniqueColors)
       toast.success('配色生成完成！')
       setProcessing(false)
@@ -69,6 +70,30 @@ export default function HomePage() {
       setProcessing(false)
       toast.error('圖片加載失敗')
     }
+  }
+
+  const copyColor = (color: string) => {
+    navigator.clipboard.writeText(color)
+    toast.success(`已複製 ${color}`)
+  }
+
+  const downloadPalette = () => {
+    if (palette.length === 0) return
+    const canvas = document.createElement('canvas')
+    canvas.width = 400
+    canvas.height = 100
+    const ctx = canvas.getContext('2d')
+    const width = 400 / palette.length
+    palette.forEach((color, index) => {
+      ctx.fillStyle = color
+      ctx.fillRect(index * width, 0, width, 100)
+    })
+    const url = canvas.toDataURL('image/png')
+    const link = document.createElement('a')
+    link.href = url
+    link.download = 'palette.png'
+    link.click()
+    toast.success('配色板下載成功！')
   }
 
   return (
@@ -175,22 +200,27 @@ export default function HomePage() {
               <div className="space-y-6">
                 <div className="grid grid-cols-4 gap-4">
                   {palette.map((color, index) => (
-                    <div key={index} style={{ backgroundColor: color }} className="h-24 rounded-lg flex items-center justify-center text-black font-medium text-sm">
-                      {color}
+                    <div key={index} style={{ backgroundColor: color }} className="h-24 rounded-lg flex items-center justify-center text-black font-medium text-sm cursor-pointer" onClick={() => copyColor(color)}>
+                      {color} <Copy className="w-4 h-4 ml-1" />
                     </div>
                   ))}
                 </div>
                 
-                <button
-                  onClick={() => {
-                    setPalette([])
-                    setSelectedFile(null)
-                    setPreviewUrl('')
-                  }}
-                  className="px-6 py-3 bg-white/10 hover:bg-white/20 text-white rounded-lg transition-colors"
-                >
-                  重新上傳
-                </button>
+                <div className="flex gap-4">
+                  <button onClick={downloadPalette} className="flex-1 bg-green-600 hover:bg-green-700 text-white py-3 rounded-lg flex items-center justify-center">
+                    <Download className="w-5 h-5 mr-2" /> 導出配色板
+                  </button>
+                  <button
+                    onClick={() => {
+                      setPalette([])
+                      setSelectedFile(null)
+                      setPreviewUrl('')
+                    }}
+                    className="px-6 py-3 bg-white/10 hover:bg-white/20 text-white rounded-lg"
+                  >
+                    重新上傳
+                  </button>
+                </div>
               </div>
             ) : (
               <div className="text-center py-12">

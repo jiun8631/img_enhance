@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from 'react'
 import { useDropzone } from 'react-dropzone'
-import { Upload, Image as ImageIcon, Palette } from 'lucide-react'
+import { Upload, Image as ImageIcon, Palette, Loader2 } from 'lucide-react'  // 添加 Loader2 導入
 import { toast } from 'react-hot-toast'
 import ColorThief from 'color-thief-browser'
 

@@ -94,11 +94,20 @@ export default function HomePage() {
       }
 
       // 應用主題
-      if (theme === 'warm') {
-        finalPalette = finalPalette.map(color => chroma(color).set('hsl.h', (chroma(color).get('hsl.h') % 360 < 180 ? chroma(color).brighten(0.5) : chroma(color)).hex())
-      } else if (theme === 'cool') {
-        finalPalette = finalPalette.map(color => chroma(color).set('hsl.h', (chroma(color).get('hsl.h') % 360 > 180 ? chroma(color).desaturate(0.5) : chroma(color)).hex())
-      }
+      // 應用主題
+if (theme === 'warm') {
+  finalPalette = finalPalette.map(color =>
+    chroma(color).get('hsl.h') % 360 < 180
+      ? chroma(color).brighten(0.5).hex()
+      : chroma(color).hex()
+  )
+} else if (theme === 'cool') {
+  finalPalette = finalPalette.map(color =>
+    chroma(color).get('hsl.h') % 360 > 180
+      ? chroma(color).desaturate(0.5).hex()
+      : chroma(color).hex()
+  )
+}
 
       setPalette(finalPalette)
       toast.success('配色生成完成！')

@@ -51,8 +51,6 @@ export default function HomePage() {
       setProcessing(true)
       toast.success('開始 AI 處理...')
       
-      const enhancedUrl = await enhanceImage(selectedFile, scaleFactor)
-      
       setEnhancedImageUrl(enhancedUrl)
       toast.success('圖片增強完成！')
       

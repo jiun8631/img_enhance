@@ -1,4 +1,4 @@
-export async function enhanceImage(file: File, scale: number = 2): Promise<string> {
+export async function enhanceImage(file: File): Promise<string> {  // 移除 scale 參數，固定使用模型默認
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     
@@ -12,8 +12,7 @@ export async function enhanceImage(file: File, scale: number = 2): Promise<strin
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            imageBase64: base64,
-            scale: scale
+            imageBase64: base64
           })
         });
 

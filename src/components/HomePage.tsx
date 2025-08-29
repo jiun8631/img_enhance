@@ -7,7 +7,6 @@ import { enhanceImage } from '@/lib/api'
 export default function HomePage() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [previewUrl, setPreviewUrl] = useState<string>('')
-  const [scaleFactor, setScaleFactor] = useState(2)
   const [enhancedImageUrl, setEnhancedImageUrl] = useState<string>('')
   const [processing, setProcessing] = useState(false)
   
@@ -51,6 +50,8 @@ export default function HomePage() {
       setProcessing(true)
       toast.success('開始 AI 處理...')
       
+      const enhancedUrl = await enhanceImage(selectedFile)  // 正確定義 enhancedUrl，這裡無 scale
+      
       setEnhancedImageUrl(enhancedUrl)
       toast.success('圖片增強完成！')
       
@@ -68,7 +69,7 @@ export default function HomePage() {
     try {
       const link = document.createElement('a')
       link.href = enhancedImageUrl
-      link.download = `enhanced_${scaleFactor}x_${selectedFile?.name || 'image.png'}`
+      link.download = `enhanced_${selectedFile?.name || 'image.png'}`
       document.body.appendChild(link)
       link.click()
       document.body.removeChild(link)
@@ -109,7 +110,7 @@ export default function HomePage() {
           <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20">
             <Star className="w-8 h-8 text-purple-400 mx-auto mb-4" />
             <h3 className="text-lg font-semibold text-white mb-2">高品質輸出</h3>
-            <p className="text-white/70 text-sm">支援 2x、4x 放大，保持細節清晰</p>
+            <p className="text-white/70 text-sm">支援 4x 放大，保持細節清晰</p>
           </div>
           <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20">
             <Clock className="w-8 h-8 text-green-400 mx-auto mb-4" />
@@ -168,23 +169,9 @@ export default function HomePage() {
               )}
             </div>
 
-            {/* Enhancement Options */}
+            {/* Enhancement Options (移除 scale 選擇，固定 4x) */}
             {selectedFile && (
               <div className="mt-6 space-y-4">
-                <div>
-                  <label className="block text-white/80 text-sm font-medium mb-2">
-                    放大倍數
-                  </label>
-                  <select
-                    value={scaleFactor}
-                    onChange={(e) => setScaleFactor(parseInt(e.target.value))}
-                    className="w-full bg-black/20 border border-white/20 rounded-lg px-4 py-2 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  >
-                    <option value={2}>2x (推薦)</option>
-                    <option value={4}>4x (高品質)</option>
-                  </select>
-                </div>
-
                 <button
                   onClick={handleEnhance}
                   disabled={processing}
@@ -198,7 +185,7 @@ export default function HomePage() {
                   ) : (
                     <>
                       <Zap className="w-5 h-5 mr-2" />
-                      免費 AI 增強
+                      免費 AI 增強 (4x)
                     </>
                   )}
                 </button>
@@ -222,7 +209,7 @@ export default function HomePage() {
                     className="w-full rounded-lg shadow-lg"
                   />
                   <div className="absolute top-2 right-2 bg-green-600/90 text-white px-2 py-1 rounded text-sm font-medium">
-                    {scaleFactor}x 增強
+                    4x 增強
                   </div>
                 </div>
                 

@@ -1,26 +1,22 @@
 import React, { useState, useCallback } from 'react'
 import { useDropzone } from 'react-dropzone'
 import { Upload, Image as ImageIcon, Download, Loader2, Zap, Star, Clock } from 'lucide-react'
-import { supabase, EnhancementType } from '@/lib/supabase'
 import { toast } from 'react-hot-toast'
+import { enhanceImage } from '@/lib/api'
 
 export default function HomePage() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [previewUrl, setPreviewUrl] = useState<string>('')
-  const [enhancementType, setEnhancementType] = useState<EnhancementType>('upscale')
   const [scaleFactor, setScaleFactor] = useState(2)
   const [enhancedImageUrl, setEnhancedImageUrl] = useState<string>('')
-  const [processingStep, setProcessingStep] = useState<'idle' | 'uploading' | 'queued' | 'processing' | 'completed'>('idle')
-  const [uploading, setUploading] = useState(false)
   const [processing, setProcessing] = useState(false)
   
-
   const onDrop = useCallback((acceptedFiles: File[]) => {
     const file = acceptedFiles[0]
     if (file) {
-      // Validate file size (max 10MB)
-      if (file.size > 10 * 1024 * 1024) {
-        toast.error('檔案大小不能超過 10MB')
+      // Validate file size (max 5MB for free tier)
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error('檔案大小不能超過 5MB')
         return
       }
 
@@ -34,7 +30,6 @@ export default function HomePage() {
       const url = URL.createObjectURL(file)
       setPreviewUrl(url)
       setEnhancedImageUrl('')
-      setProcessingStep('idle')
     }
   }, [])
 
@@ -45,53 +40,6 @@ export default function HomePage() {
     },
     multiple: false
   })
-  
-  const uploadImage = async (file: File, enhancementType: EnhancementType, scaleFactor: number) => {
-    return new Promise<any>((resolve, reject) => {
-      const reader = new FileReader()
-      reader.onloadend = async () => {
-        try {
-          const base64Data = reader.result as string
-
-          // Upload image via edge function (no auth required)
-          const { data, error } = await supabase.functions.invoke('image-upload', {
-            body: {
-              imageData: base64Data,
-              fileName: file.name,
-              enhancementType,
-              scaleFactor
-            }
-          })
-
-          if (error) throw error
-
-          if (data?.data) {
-            resolve(data.data)
-          } else {
-            throw new Error('上傳響應格式錯誤')
-          }
-        } catch (err) {
-          reject(err)
-        }
-      }
-      reader.onerror = reject
-      reader.readAsDataURL(file)
-    })
-  }
-
-  const enhanceImage = async (processingId: string) => {
-    const { data, error } = await supabase.functions.invoke('image-enhance', {
-      body: { processingId }
-    })
-
-    if (error) throw error
-
-    if (data?.data) {
-      return data.data
-    } else {
-      throw new Error('處理響應格式錯誤')
-    }
-  }
 
   const handleEnhance = async () => {
     if (!selectedFile) {
@@ -100,30 +48,19 @@ export default function HomePage() {
     }
 
     try {
-      setProcessingStep('uploading')
-      setUploading(true)
-      
-      // Upload image
-      const uploadResult = await uploadImage(selectedFile, enhancementType, scaleFactor)
-      
-      setUploading(false)
       setProcessing(true)
-      setProcessingStep('queued')
-      toast.success('圖片上傳成功，開始處理...')
+      toast.success('開始 AI 處理...')
       
-      // Start enhancement
-      const enhanceResult = await enhanceImage(uploadResult.processingId)
+      const enhancedUrl = await enhanceImage(selectedFile, scaleFactor)
       
-      setProcessing(false)
-      setProcessingStep('completed')
-      setEnhancedImageUrl(enhanceResult.enhancedImageUrl)
+      setEnhancedImageUrl(enhancedUrl)
+      toast.success('圖片增強完成！')
       
     } catch (error: any) {
-      setUploading(false)
-      setProcessing(false)
-      setProcessingStep('idle')
-      toast.error(error.message || '處理失敗')
+      toast.error(error.message || '處理失敗，請稍後再試')
       console.error('Enhancement failed:', error)
+    } finally {
+      setProcessing(false)
     }
   }
 
@@ -131,16 +68,12 @@ export default function HomePage() {
     if (!enhancedImageUrl) return
     
     try {
-      const response = await fetch(enhancedImageUrl)
-      const blob = await response.blob()
-      const url = window.URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `enhanced_${scaleFactor}x_${selectedFile?.name || 'image.jpg'}`
-      document.body.appendChild(a)
-      a.click()
-      document.body.removeChild(a)
-      window.URL.revokeObjectURL(url)
+      const link = document.createElement('a')
+      link.href = enhancedImageUrl
+      link.download = `enhanced_${scaleFactor}x_${selectedFile?.name || 'image.png'}`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
       toast.success('圖片下載成功')
     } catch (error) {
       toast.error('下載失敗')
@@ -178,12 +111,12 @@ export default function HomePage() {
           <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20">
             <Star className="w-8 h-8 text-purple-400 mx-auto mb-4" />
             <h3 className="text-lg font-semibold text-white mb-2">高品質輸出</h3>
-            <p className="text-white/70 text-sm">支援 2x、4x、8x 放大，保持細節清晰</p>
+            <p className="text-white/70 text-sm">支援 2x、4x 放大，保持細節清晰</p>
           </div>
           <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20">
             <Clock className="w-8 h-8 text-green-400 mx-auto mb-4" />
             <h3 className="text-lg font-semibold text-white mb-2">快速處理</h3>
-            <p className="text-white/70 text-sm">雲端高效計算，幾分鐘內完成</p>
+            <p className="text-white/70 text-sm">雲端高效計算，幾秒內完成</p>
           </div>
         </div>
       </div>
@@ -230,7 +163,7 @@ export default function HomePage() {
                       {isDragActive ? '放開檔案以上傳' : '點擊或拖拽圖片到此處'}
                     </p>
                     <p className="text-sm text-white/60">
-                      支援 JPEG、PNG、WebP 格式，最大 10MB
+                      支援 JPEG、PNG、WebP 格式，最大 5MB
                     </p>
                   </div>
                 </div>
@@ -242,22 +175,6 @@ export default function HomePage() {
               <div className="mt-6 space-y-4">
                 <div>
                   <label className="block text-white/80 text-sm font-medium mb-2">
-                    增強類型
-                  </label>
-                  <select
-                    value={enhancementType}
-                    onChange={(e) => setEnhancementType(e.target.value as EnhancementType)}
-                    className="w-full bg-black/20 border border-white/20 rounded-lg px-4 py-2 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  >
-                    <option value="upscale">超解析度放大</option>
-                    <option value="denoise">降噪優化</option>
-                    <option value="sharpen">銳化增強</option>
-                    <option value="restore">照片修復</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-white/80 text-sm font-medium mb-2">
                     放大倍數
                   </label>
                   <select
@@ -265,48 +182,28 @@ export default function HomePage() {
                     onChange={(e) => setScaleFactor(parseInt(e.target.value))}
                     className="w-full bg-black/20 border border-white/20 rounded-lg px-4 py-2 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
-                    <option value={2}>2x (快速)</option>
-                    <option value={4}>4x (標準)</option>
-                    <option value={8}>8x (高品質)</option>
+                    <option value={2}>2x (推薦)</option>
+                    <option value={4}>4x (高品質)</option>
                   </select>
                 </div>
 
-                  <button
-                    onClick={handleEnhance}
-                    disabled={uploading || processing || processingStep !== 'idle'}
-                    className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:from-gray-600 disabled:to-gray-600 text-white font-medium py-3 px-6 rounded-lg transition-colors flex items-center justify-center"
-                  >
-                    {processingStep === 'uploading' && (
-                      <>
-                        <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                        上傳中...
-                      </>
-                    )}
-                    {processingStep === 'queued' && (
-                      <>
-                        <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                        AI 處理中...
-                      </>
-                    )}
-                    {processingStep === 'processing' && (
-                      <>
-                        <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                        AI 處理中...
-                      </>
-                    )}
-                    {processingStep === 'idle' && (
-                      <>
-                        <Zap className="w-5 h-5 mr-2" />
-                        免費 AI 增強
-                      </>
-                    )}
-                    {processingStep === 'completed' && (
-                      <>
-                        <Zap className="w-5 h-5 mr-2" />
-                        再次增強
-                      </>
-                    )}
-                  </button>
+                <button
+                  onClick={handleEnhance}
+                  disabled={processing}
+                  className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:from-gray-600 disabled:to-gray-600 text-white font-medium py-3 px-6 rounded-lg transition-colors flex items-center justify-center"
+                >
+                  {processing ? (
+                    <>
+                      <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                      AI 處理中...
+                    </>
+                  ) : (
+                    <>
+                      <Zap className="w-5 h-5 mr-2" />
+                      免費 AI 增強
+                    </>
+                  )}
+                </button>
               </div>
             )}
           </div>
@@ -344,7 +241,6 @@ export default function HomePage() {
                       setEnhancedImageUrl('')
                       setSelectedFile(null)
                       setPreviewUrl('')
-                      setProcessingStep('idle')
                     }}
                     className="px-6 py-3 bg-white/10 hover:bg-white/20 text-white rounded-lg transition-colors"
                   >
@@ -358,26 +254,12 @@ export default function HomePage() {
                   <ImageIcon className="w-8 h-8 text-white/40" />
                 </div>
                 <p className="text-white/60">
-                  {processingStep === 'idle'
-                    ? '上傳圖片並點擊增強按鈕開始處理'
-                    : '正在處理您的圖片，請稍候...'}
+                  上傳圖片並點擊增強按鈕開始處理
                 </p>
               </div>
             )}
           </div>
         </div>
-        
-       {/* 結果區域下方的廣告位 */}
-        {enhancedImageUrl && (
-          <div className="mt-12 bg-gray-800/90 backdrop-blur-sm border border-gray-700 rounded-xl p-6">
-            <div className="text-center text-gray-400 text-sm mb-2">
-              廣告區域 - 結果展示下方 (728x250)
-            </div>
-            <div className="h-32 bg-gray-700/50 rounded-lg flex items-center justify-center">
-              <span className="text-gray-500">廣告內容區域</span>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   )

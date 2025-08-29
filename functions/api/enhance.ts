@@ -21,7 +21,7 @@ export async function onRequestPost(context) {
       });
     }
 
-    // 檢查輸入大小 (Replicate 有限制，避免大圖)
+    // 檢查輸入大小
     const base64Size = imageBase64.length * (3/4);
     if (base64Size > 1 * 1024 * 1024) {
       console.error("Image too large");
@@ -42,7 +42,8 @@ export async function onRequestPost(context) {
 
     console.log("Calling Replicate API with model: nightmareai/real-esrgan");
 
-    // Replicate API 調用 (創建預測)
+    // Replicate API 調用 (創建預測) - 替換為你從網站複製的最新版本 ID
+    const modelVersion = "f121d640bd286e1fdc67f9799164c1d5be36ff74576ee11c803ae5b665dd46aa";  // <- 這裡替換為最新 ID !!!
     const createResponse = await fetch("https://api.replicate.com/v1/predictions", {
       method: "POST",
       headers: {
@@ -50,9 +51,9 @@ export async function onRequestPost(context) {
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        version: "42fed1c4974146d4d2414e2be2c527703b1fbf5abd874b18ea1daf71ed0a7e6b",  // Real-ESRGAN 模型版本 ID (從 Replicate 頁面複製)
+        version: modelVersion,  // 最新版本 ID
         input: {
-          image: imageBase64  // 完整 base64，包括前綴
+          image: imageBase64  // 完整 base64
         }
       })
     });
@@ -69,8 +70,17 @@ export async function onRequestPost(context) {
     const prediction = await createResponse.json();
     let output;
 
-    // 輪詢預測狀態 (Replicate 是異步的，需要等待結果)
+    // 輪詢狀態 (添加超時，最大 60s)
+    const startTime = Date.now();
     while (true) {
+      if (Date.now() - startTime > 60000) {
+        console.error("Replicate prediction timeout");
+        return new Response(JSON.stringify({ error: "AI processing timeout (try again later)" }), {
+          status: 504,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
       const statusResponse = await fetch(`https://api.replicate.com/v1/predictions/${prediction.id}`, {
         headers: {
           "Authorization": `Token ${apiKey}`
@@ -89,12 +99,19 @@ export async function onRequestPost(context) {
         });
       }
 
-      // 等待 2s 再檢查
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      await new Promise(resolve => setTimeout(resolve, 2000));  // 等待 2s
     }
 
-    // output 是增強圖像的 URL，從 Replicate 下載並轉 base64
+    // output 是 URL，下載並轉 base64
     const imageResponse = await fetch(output);
+    if (!imageResponse.ok) {
+      console.error("Failed to fetch output image");
+      return new Response(JSON.stringify({ error: "Failed to retrieve enhanced image" }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
     const imageBuffer = await imageResponse.arrayBuffer();
     const base64Result = btoa(String.fromCharCode(...new Uint8Array(imageBuffer)));
 

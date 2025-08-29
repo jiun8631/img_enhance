@@ -13,7 +13,7 @@ export default function Navbar() {
             <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
               <Zap className="w-5 h-5 text-white" />
             </div>
-            <span>AI圖像增強器</span>
+            <span>AI 顏色配色生成器</span>
           </div>
 
           {/* Desktop Navigation */}

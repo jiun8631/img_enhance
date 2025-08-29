@@ -40,15 +40,16 @@ export async function onRequestPost(context) {
       });
     }
 
-    console.log("Calling HF API with model: stabilityai/stable-diffusion-x4-upscaler");
+    console.log("Calling HF API with model: lucataco/real-esrgan");
 
-    // 添加重試邏輯（最多 3 次，每次間隔 10s）
+    // 重試邏輯（最多 3 次，只針對 "loading" 錯誤）
     let attempts = 0;
     const maxAttempts = 3;
     let response;
+    let errText = '';
     while (attempts < maxAttempts) {
       response = await fetch(
-        "https://api-inference.huggingface.co/models/stabilityai/stable-diffusion-x4-upscaler",
+        "https://api-inference.huggingface.co/models/lucataco/real-esrgan",
         {
           method: "POST",
           headers: {
@@ -56,31 +57,30 @@ export async function onRequestPost(context) {
             "Content-Type": "application/json"
           },
           body: JSON.stringify({
-            inputs: imageBase64.split(',')[1],  // base64 數據
-            parameters: {
-              prompt: "upscale image high quality"  // 必須添加 prompt，描述任務
-            }
+            inputs: imageBase64.split(',')[1]  // base64 數據
           })
         }
       );
 
       if (response.ok) break;
 
-      const errText = await response.text();
+      // 只讀取一次 text()
+      errText = await response.text();
       console.error(`Attempt ${attempts + 1} failed: ${errText}`);
-      if (!errText.includes("loading") && !errText.includes("Not Found")) {  // 如果不是臨時錯誤，停止
+
+      if (errText.includes("loading")) {
+        attempts++;
+        await new Promise(resolve => setTimeout(resolve, 10000));  // 等待 10s
+      } else {
+        // 非 loading 錯誤，直接返回
         return new Response(JSON.stringify({ error: "AI processing failed: " + errText }), {
           status: 500,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         });
       }
-
-      attempts++;
-      await new Promise(resolve => setTimeout(resolve, 10000));  // 等待 10s
     }
 
     if (!response || !response.ok) {
-      const errText = await response.text();
       console.error("HuggingFace API error after retries:", errText);
       return new Response(JSON.stringify({ error: "AI processing failed after retries: " + errText }), {
         status: 500,

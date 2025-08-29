@@ -21,77 +21,84 @@ export async function onRequestPost(context) {
       });
     }
 
-    // 檢查輸入大小
+    // 檢查輸入大小 (Replicate 有限制，避免大圖)
     const base64Size = imageBase64.length * (3/4);
     if (base64Size > 1 * 1024 * 1024) {
-      console.error("Image too large for free API");
-      return new Response(JSON.stringify({ error: "Image too large (max 1MB for free API)" }), {
+      console.error("Image too large");
+      return new Response(JSON.stringify({ error: "Image too large (max 1MB)" }), {
         status: 413,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
 
-    const apiKey = context.env.HUGGINGFACE_API_KEY;
+    const apiKey = context.env.REPLICATE_API_KEY;
     if (!apiKey) {
-      console.error("Missing HuggingFace API Key");
+      console.error("Missing Replicate API Key");
       return new Response(JSON.stringify({ error: "API configuration error" }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
 
-    console.log("Calling HF API with model: lucataco/real-esrgan");
+    console.log("Calling Replicate API with model: nightmareai/real-esrgan");
 
-    // 重試邏輯（最多 3 次，只針對 "loading" 錯誤）
-    let attempts = 0;
-    const maxAttempts = 3;
-    let response;
-    let errText = '';
-    while (attempts < maxAttempts) {
-      response = await fetch(
-        "https://api-inference.huggingface.co/models/lucataco/real-esrgan",
-        {
-          method: "POST",
-          headers: {
-            "Authorization": `Bearer ${apiKey}`,
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({
-            inputs: imageBase64.split(',')[1]  // base64 數據
-          })
+    // Replicate API 調用 (創建預測)
+    const createResponse = await fetch("https://api.replicate.com/v1/predictions", {
+      method: "POST",
+      headers: {
+        "Authorization": `Token ${apiKey}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        version: "42fed1c4974146d4d2414e2be2c527703b1fbf5abd874b18ea1daf71ed0a7e6b",  // Real-ESRGAN 模型版本 ID (從 Replicate 頁面複製)
+        input: {
+          image: imageBase64  // 完整 base64，包括前綴
         }
-      );
+      })
+    });
 
-      if (response.ok) break;
-
-      // 只讀取一次 text()
-      errText = await response.text();
-      console.error(`Attempt ${attempts + 1} failed: ${errText}`);
-
-      if (errText.includes("loading")) {
-        attempts++;
-        await new Promise(resolve => setTimeout(resolve, 10000));  // 等待 10s
-      } else {
-        // 非 loading 錯誤，直接返回
-        return new Response(JSON.stringify({ error: "AI processing failed: " + errText }), {
-          status: 500,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
-      }
-    }
-
-    if (!response || !response.ok) {
-      console.error("HuggingFace API error after retries:", errText);
-      return new Response(JSON.stringify({ error: "AI processing failed after retries: " + errText }), {
+    if (!createResponse.ok) {
+      const errText = await createResponse.text();
+      console.error("Replicate create error:", errText);
+      return new Response(JSON.stringify({ error: "AI processing failed: " + errText }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
 
-    const imageBuffer = await response.arrayBuffer();
+    const prediction = await createResponse.json();
+    let output;
+
+    // 輪詢預測狀態 (Replicate 是異步的，需要等待結果)
+    while (true) {
+      const statusResponse = await fetch(`https://api.replicate.com/v1/predictions/${prediction.id}`, {
+        headers: {
+          "Authorization": `Token ${apiKey}`
+        }
+      });
+
+      const status = await statusResponse.json();
+      if (status.status === "succeeded") {
+        output = status.output;
+        break;
+      } else if (status.status === "failed") {
+        console.error("Replicate prediction failed:", status.error);
+        return new Response(JSON.stringify({ error: "AI processing failed: " + status.error }), {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
+      // 等待 2s 再檢查
+      await new Promise(resolve => setTimeout(resolve, 2000));
+    }
+
+    // output 是增強圖像的 URL，從 Replicate 下載並轉 base64
+    const imageResponse = await fetch(output);
+    const imageBuffer = await imageResponse.arrayBuffer();
     const base64Result = btoa(String.fromCharCode(...new Uint8Array(imageBuffer)));
 
-    console.log("HF API success, returning image");
+    console.log("Replicate API success");
 
     return new Response(JSON.stringify({
       success: true,

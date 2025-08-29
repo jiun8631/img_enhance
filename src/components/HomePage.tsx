@@ -13,8 +13,8 @@ export default function HomePage() {
   const [theme, setTheme] = useState<'neutral' | 'warm' | 'cool'>('neutral')
   const [numColors, setNumColors] = useState<4 | 8 | 12>(8)
   const [processing, setProcessing] = useState(false)
-  const [editingColor, setEditingColor] = useState<{ index: number; brightness: number; saturation: number } | null>(null)
-  
+  const [editingColor, setEditingColor] = useState<{ index: number, brightness: number, saturation: number } | null>(null)  // 修正：添加逗號
+
   const onDrop = useCallback((acceptedFiles: File[]) => {
     const file = acceptedFiles[0]
     if (file) {
@@ -211,7 +211,7 @@ export default function HomePage() {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  <ImageIcon className="w-12 h-12 text-white/40 mx-auto" />
+                  <ImageIcon className="w-12 h-6 text-white/40 mx-auto" />
                   <div className="text-white/80">
                     <p className="text-lg font-medium mb-2">
                       {isDragActive ? '放開檔案以上傳' : '點擊或拖拽圖片到此處'}
@@ -231,28 +231,28 @@ export default function HomePage() {
                   onChange={(e) => setMode(e.target.value as typeof mode)}
                   className="w-full bg-black/20 border border-white/20 rounded-lg px-4 py-2 text-white"
                 >
-                  <option value="standard">標準模式</option>
-                  <option value="complementary">互補模式</option>
-                  <option value="analogous">類似模式</option>
-                  <option value="triadic">三色模式</option>
+                  <option value="standard">標準</option>
+                  <option value="complementary">互補</option>
+                  <option value="analogous">類似</option>
+                  <option value="triadic">三色</option>
                 </select>
                 <select
                   value={theme}
                   onChange={(e) => setTheme(e.target.value as typeof theme)}
                   className="w-full bg-black/20 border border-white/20 rounded-lg px-4 py-2 text-white"
                 >
-                  <option value="neutral">中性主題</option>
-                  <option value="warm">暖色主題</option>
-                  <option value="cool">冷色主題</option>
+                  <option value="neutral">中性</option>
+                  <option value="warm">暖色</option>
+                  <option value="cool">冷色</option>
                 </select>
                 <select
                   value={numColors}
                   onChange={(e) => setNumColors(parseInt(e.target.value) as typeof numColors)}
                   className="w-full bg-black/20 border border-white/20 rounded-lg px-4 py-2 text-white"
                 >
-                  <option value={4}>4 種顏色</option>
-                  <option value={8}>8 種顏色</option>
-                  <option value={12}>12 種顏色</option>
+                  <option value={4}>4 種</option>
+                  <option value={8}>8 種</option>
+                  <option value={12}>12 種</option>
                 </select>
                 <button
                   onClick={generatePalette}
@@ -291,14 +291,14 @@ export default function HomePage() {
                       <div className="absolute bottom-1 right-1 flex gap-1">
                         <Sliders className="w-4 h-4" onClick={(e) => {
                           e.stopPropagation()
-                          setEditingColor({ index, brightness: 0, saturation: 0 })
+                          setEditingColor({ index: index, brightness: 0, saturation: 0 })  // 修正逗號
                         }} />
                       </div>
                     </motion.div>
                   ))}
                 </div>
                 
-                {editingColor && (
+                {editingColor !== null && (
                   <div className="p-4 bg-gray-900 rounded-lg">
                     <h3 className="text-white mb-2">編輯顏色 {editingColor.index + 1}</h3>
                     <div className="flex gap-4">

@@ -1,21 +1,19 @@
 import React, { useState, useCallback } from 'react'
 import { useDropzone } from 'react-dropzone'
-import { Upload, Image as ImageIcon, Download, Loader2, Zap, Star, Shield, Clock } from 'lucide-react'
-import { useAuth } from '@/contexts/AuthContext'
-import { useImageEnhancement } from '@/hooks/useImageEnhancement'
-import { EnhancementType } from '@/lib/supabase'
+import { Upload, Image as ImageIcon, Download, Loader2, Zap, Star, Clock } from 'lucide-react'
+import { supabase, EnhancementType } from '@/lib/supabase'
 import { toast } from 'react-hot-toast'
-import { Link } from 'react-router-dom'
 
 export default function HomePage() {
-  const { user } = useAuth()
-  const { uploadImage, enhanceImage, uploading, processing } = useImageEnhancement()
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [previewUrl, setPreviewUrl] = useState<string>('')
   const [enhancementType, setEnhancementType] = useState<EnhancementType>('upscale')
   const [scaleFactor, setScaleFactor] = useState(2)
   const [enhancedImageUrl, setEnhancedImageUrl] = useState<string>('')
   const [processingStep, setProcessingStep] = useState<'idle' | 'uploading' | 'queued' | 'processing' | 'completed'>('idle')
+  const [uploading, setUploading] = useState(false)
+  const [processing, setProcessing] = useState(false)
+  
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
     const file = acceptedFiles[0]
@@ -47,31 +45,84 @@ export default function HomePage() {
     },
     multiple: false
   })
+  
+  const uploadImage = async (file: File, enhancementType: EnhancementType, scaleFactor: number) => {
+    return new Promise<any>((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onloadend = async () => {
+        try {
+          const base64Data = reader.result as string
+
+          // Upload image via edge function (no auth required)
+          const { data, error } = await supabase.functions.invoke('image-upload', {
+            body: {
+              imageData: base64Data,
+              fileName: file.name,
+              enhancementType,
+              scaleFactor
+            }
+          })
+
+          if (error) throw error
+
+          if (data?.data) {
+            resolve(data.data)
+          } else {
+            throw new Error('上傳響應格式錯誤')
+          }
+        } catch (err) {
+          reject(err)
+        }
+      }
+      reader.onerror = reject
+      reader.readAsDataURL(file)
+    })
+  }
+
+  const enhanceImage = async (processingId: string) => {
+    const { data, error } = await supabase.functions.invoke('image-enhance', {
+      body: { processingId }
+    })
+
+    if (error) throw error
+
+    if (data?.data) {
+      return data.data
+    } else {
+      throw new Error('處理響應格式錯誤')
+    }
+  }
 
   const handleEnhance = async () => {
-    if (!selectedFile || !user) {
-      if (!user) {
-        toast.error('請先登錄後再使用')
-      }
+    if (!selectedFile) {
+      toast.error('請先選擇圖片')
       return
     }
 
     try {
       setProcessingStep('uploading')
+      setUploading(true)
       
       // Upload image
       const uploadResult = await uploadImage(selectedFile, enhancementType, scaleFactor)
       
+      setUploading(false)
+      setProcessing(true)
       setProcessingStep('queued')
+      toast.success('圖片上傳成功，開始處理...')
       
       // Start enhancement
       const enhanceResult = await enhanceImage(uploadResult.processingId)
       
+      setProcessing(false)
       setProcessingStep('completed')
       setEnhancedImageUrl(enhanceResult.enhancedImageUrl)
       
     } catch (error: any) {
+      setUploading(false)
+      setProcessing(false)
       setProcessingStep('idle')
+      toast.error(error.message || '處理失敗')
       console.error('Enhancement failed:', error)
     }
   }
@@ -97,7 +148,7 @@ export default function HomePage() {
   }
 
   return (
-    <div className="min-h-screen pt-20 pb-24">
+    <div className="min-h-screen pb-24">
       {/* Hero Section */}
       <div className="text-center mb-12">
         <h1 className="text-5xl font-bold text-white mb-6 bg-gradient-to-r from-blue-400 to-purple-600 bg-clip-text text-transparent">
@@ -106,6 +157,16 @@ export default function HomePage() {
         <p className="text-xl text-white/80 mb-8 max-w-2xl mx-auto">
           使用最先進的 AI 技術，讓您的圖片更加清晰、銳利、細節更豐富
         </p>
+        
+        {/* Free Notice */}
+        <div className="bg-green-600/20 border border-green-400/30 rounded-lg p-4 mb-8 max-w-md mx-auto">
+          <div className="text-green-400 font-semibold">
+            🎉 完全免費使用，無需註冊！
+          </div>
+          <div className="text-green-400/80 text-sm mt-1">
+            立即上傳圖片開始 AI 增強體驗
+          </div>
+        </div>
         
         {/* Features */}
         <div className="grid md:grid-cols-3 gap-6 mb-12 max-w-4xl mx-auto">
@@ -210,15 +271,6 @@ export default function HomePage() {
                   </select>
                 </div>
 
-                {!user ? (
-                  <Link
-                    to="/login"
-                    className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-6 rounded-lg transition-colors flex items-center justify-center"
-                  >
-                    <Shield className="w-5 h-5 mr-2" />
-                    登錄後開始增強
-                  </Link>
-                ) : (
                   <button
                     onClick={handleEnhance}
                     disabled={uploading || processing || processingStep !== 'idle'}
@@ -233,7 +285,7 @@ export default function HomePage() {
                     {processingStep === 'queued' && (
                       <>
                         <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                        排隊中...
+                        AI 處理中...
                       </>
                     )}
                     {processingStep === 'processing' && (
@@ -245,7 +297,7 @@ export default function HomePage() {
                     {processingStep === 'idle' && (
                       <>
                         <Zap className="w-5 h-5 mr-2" />
-                        開始 AI 增強
+                        免費 AI 增強
                       </>
                     )}
                     {processingStep === 'completed' && (
@@ -255,7 +307,6 @@ export default function HomePage() {
                       </>
                     )}
                   </button>
-                )}
               </div>
             )}
           </div>
@@ -315,6 +366,18 @@ export default function HomePage() {
             )}
           </div>
         </div>
+        
+       {/* 結果區域下方的廣告位 */}
+        {enhancedImageUrl && (
+          <div className="mt-12 bg-gray-800/90 backdrop-blur-sm border border-gray-700 rounded-xl p-6">
+            <div className="text-center text-gray-400 text-sm mb-2">
+              廣告區域 - 結果展示下方 (728x250)
+            </div>
+            <div className="h-32 bg-gray-700/50 rounded-lg flex items-center justify-center">
+              <span className="text-gray-500">廣告內容區域</span>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )

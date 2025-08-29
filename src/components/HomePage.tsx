@@ -1,16 +1,19 @@
 import React, { useState, useCallback } from 'react'
 import { useDropzone } from 'react-dropzone'
-import { Upload, Image as ImageIcon, Palette, Loader2, Copy, Download, RefreshCw } from 'lucide-react'
+import { Upload, Image as ImageIcon, Palette, Loader2, Copy, Download, RefreshCw, Sliders } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 import chroma from 'chroma-js'
-import { motion } from 'framer-motion'  // 動畫庫
+import { motion } from 'framer-motion'
 
 export default function HomePage() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [previewUrl, setPreviewUrl] = useState<string>('')
   const [palette, setPalette] = useState<string[]>([])
-  const [mode, setMode] = useState<'standard' | 'morandi' | 'gradient'>('standard')  // 模式選擇
+  const [mode, setMode] = useState<'standard' | 'complementary' | 'analogous' | 'triadic'>('standard')
+  const [theme, setTheme] = useState<'neutral' | 'warm' | 'cool'>('neutral')
+  const [numColors, setNumColors] = useState<4 | 8 | 12>(8)
   const [processing, setProcessing] = useState(false)
+  const [editingColor, setEditingColor] = useState<{ index: number; brightness: number; saturation: number } | null>(null)
   
   const onDrop = useCallback((acceptedFiles: File[]) => {
     const file = acceptedFiles[0]
@@ -39,7 +42,10 @@ export default function HomePage() {
   })
 
   const generatePalette = () => {
-    if (!previewUrl) return
+    if (!previewUrl) {
+      toast.error('請先選擇圖片')
+      return
+    }
 
     setProcessing(true)
     const img = new Image()
@@ -53,18 +59,40 @@ export default function HomePage() {
 
       const imageData = ctx.getImageData(0, 0, img.width, img.height).data
       const colors = []
-      const numSamples = 200 + Math.floor(Math.random() * 50)  // 隨機取樣數，讓每次變化
+      const numSamples = 300 + Math.floor(Math.random() * 100)  // 隨機取樣，增加變化
       const step = Math.floor(imageData.length / 4 / numSamples)
       for (let i = 0; i < imageData.length; i += step * 4) {
         const color = chroma(imageData[i], imageData[i+1], imageData[i+2]).hex()
-        if (!colors.includes(color)) colors.push(color)
+        colors.push(color)
       }
 
-      let finalPalette = colors.slice(0, 8)
-      if (mode === 'morandi') {
-        finalPalette = finalPalette.map(color => chroma(color).desaturate(1.5).brighten(0.5).hex())  // 莫蘭迪風格：低飽和、柔和
-      } else if (mode === 'gradient') {
-        finalPalette = chroma.scale(finalPalette).colors(8)  // 生成漸變
+      // 過濾相似顏色 (使用距離計算)
+      const uniqueColors = []
+      colors.forEach(color => {
+        if (!uniqueColors.some(c => chroma.distance(c, color) < 0.2)) {  // 距離閾值，避免相似
+          uniqueColors.push(color)
+        }
+      })
+
+      let finalPalette = uniqueColors.slice(0, numColors)
+
+      // 應用模式 (生成好看的搭配)
+      if (mode === 'complementary') {
+        finalPalette = finalPalette.map(color => [color, chroma(color).set('hsl.h', '+180').hex()])
+        finalPalette = finalPalette.flat().slice(0, numColors)
+      } else if (mode === 'analogous') {
+        finalPalette = finalPalette.map(color => chroma.scale([chroma(color).set('hsl.h', '-30'), color, chroma(color).set('hsl.h', '+30')]).colors(3))
+        finalPalette = finalPalette.flat().slice(0, numColors)
+      } else if (mode === 'triadic') {
+        finalPalette = finalPalette.map(color => [color, chroma(color).set('hsl.h', '+120').hex(), chroma(color).set('hsl.h', '+240').hex()])
+        finalPalette = finalPalette.flat().slice(0, numColors)
+      }
+
+      // 應用主題
+      if (theme === 'warm') {
+        finalPalette = finalPalette.map(color => chroma(color).set('hsl.h', (chroma(color).get('hsl.h') % 360 < 180 ? chroma(color).brighten(0.5) : chroma(color)).hex())
+      } else if (theme === 'cool') {
+        finalPalette = finalPalette.map(color => chroma(color).set('hsl.h', (chroma(color).get('hsl.h') % 360 > 180 ? chroma(color).desaturate(0.5) : chroma(color)).hex())
       }
 
       setPalette(finalPalette)
@@ -101,6 +129,31 @@ export default function HomePage() {
     toast.success('配色板下載成功！')
   }
 
+  const exportCSS = () => {
+    if (palette.length === 0) return
+    const css = palette.map((color, index) => `--color-${index + 1}: ${color};`).join('\n')
+    navigator.clipboard.writeText(`:root {\n${css}\n}`)
+    toast.success('CSS 代碼已複製！')
+  }
+
+  const sharePalette = () => {
+    if (palette.length === 0) return
+    const shareUrl = `${window.location.origin}?palette=${palette.join(',')}`
+    navigator.clipboard.writeText(shareUrl)
+    toast.success('分享連結已複製！')
+  }
+
+  const editColor = (index: number, type: 'brightness' | 'saturation', delta: number) => {
+    if (editingColor && editingColor.index === index) {
+      const newPalette = [...palette]
+      let newColor = chroma(newPalette[index])
+      if (type === 'brightness') newColor = newColor.brighten(delta)
+      if (type === 'saturation') newColor = newColor.saturate(delta)
+      newPalette[index] = newColor.hex()
+      setPalette(newPalette)
+    }
+  }
+
   return (
     <div className="min-h-screen pb-24">
       {/* Hero Section */}
@@ -109,7 +162,7 @@ export default function HomePage() {
           AI 顏色配色生成器
         </h1>
         <p className="text-xl text-white/80 mb-8 max-w-2xl mx-auto">
-          從圖片提取主色，支持標準、莫蘭迪、漸變模式 - 專業設計工具
+          智能提取並生成和諧配色，支持多模式和編輯 - 設計師必備工具
         </p>
         
         {/* Free Notice */}
@@ -179,8 +232,27 @@ export default function HomePage() {
                   className="w-full bg-black/20 border border-white/20 rounded-lg px-4 py-2 text-white"
                 >
                   <option value="standard">標準模式</option>
-                  <option value="morandi">莫蘭迪模式</option>
-                  <option value="gradient">漸變模式</option>
+                  <option value="complementary">互補模式</option>
+                  <option value="analogous">類似模式</option>
+                  <option value="triadic">三色模式</option>
+                </select>
+                <select
+                  value={theme}
+                  onChange={(e) => setTheme(e.target.value as typeof theme)}
+                  className="w-full bg-black/20 border border-white/20 rounded-lg px-4 py-2 text-white"
+                >
+                  <option value="neutral">中性主題</option>
+                  <option value="warm">暖色主題</option>
+                  <option value="cool">冷色主題</option>
+                </select>
+                <select
+                  value={numColors}
+                  onChange={(e) => setNumColors(parseInt(e.target.value) as typeof numColors)}
+                  className="w-full bg-black/20 border border-white/20 rounded-lg px-4 py-2 text-white"
+                >
+                  <option value={4}>4 種顏色</option>
+                  <option value={8}>8 種顏色</option>
+                  <option value={12}>12 種顏色</option>
                 </select>
                 <button
                   onClick={generatePalette}
@@ -207,48 +279,55 @@ export default function HomePage() {
           <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-8 border border-white/20">
             <h2 className="text-2xl font-bold text-white mb-6 flex items-center">
               <Palette className="w-6 h-6 mr-2" />
-              配色結果 ({mode})
+              配色結果 ({mode} - {theme} - {numColors} 種)
             </h2>
 
             {palette.length > 0 ? (
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5 }} className="space-y-6">
                 <div className="grid grid-cols-4 gap-4">
                   {palette.map((color, index) => (
-                    <motion.div key={index} initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: index * 0.1 }} style={{ backgroundColor: color }} className="h-24 rounded-lg flex items-center justify-center text-black font-medium text-sm cursor-pointer" onClick={() => copyColor(color)}>
+                    <motion.div key={index} initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: index * 0.1 }} style={{ backgroundColor: color }} className="h-24 rounded-lg flex items-center justify-center text-black font-medium text-sm cursor-pointer relative" onClick={() => copyColor(color)}>
                       {color} <Copy className="w-4 h-4 ml-1" />
+                      <div className="absolute bottom-1 right-1 flex gap-1">
+                        <Sliders className="w-4 h-4" onClick={(e) => {
+                          e.stopPropagation()
+                          setEditingColor({ index, brightness: 0, saturation: 0 })
+                        }} />
+                      </div>
                     </motion.div>
                   ))}
                 </div>
                 
+                {editingColor && (
+                  <div className="p-4 bg-gray-900 rounded-lg">
+                    <h3 className="text-white mb-2">編輯顏色 {editingColor.index + 1}</h3>
+                    <div className="flex gap-4">
+                      <div>
+                        <label>亮度</label>
+                        <input type="range" min="-2" max="2" step="0.1" onChange={(e) => editColor(editingColor.index, 'brightness', parseFloat(e.target.value))} />
+                      </div>
+                      <div>
+                        <label>飽和</label>
+                        <input type="range" min="-2" max="2" step="0.1" onChange={(e) => editColor(editingColor.index, 'saturation', parseFloat(e.target.value))} />
+                      </div>
+                    </div>
+                    <button onClick={() => setEditingColor(null)} className="mt-2 bg-red-600 py-1 px-2 rounded">關閉</button>
+                  </div>
+                )}
+                
                 <div className="flex gap-4">
                   <button onClick={downloadPalette} className="flex-1 bg-green-600 hover:bg-green-700 text-white py-3 rounded-lg flex items-center justify-center">
-                    <Download className="w-5 h-5 mr-2" /> 導出配色板
+                    <Download className="w-5 h-5 mr-2" /> 導出 PNG
                   </button>
-                  <button onClick={generatePalette} className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg flex items-center justify-center">
-                    <RefreshCw className="w-5 h-5 mr-2" /> 重新生成
+                  <button onClick={exportCSS} className="flex-1 bg-purple-600 hover:bg-purple-700 text-white py-3 rounded-lg flex items-center justify-center">
+                    <Copy className="w-5 h-5 mr-2" /> 導出 CSS
                   </button>
-                  <button
-                    onClick={() => {
-                      setPalette([])
-                      setSelectedFile(null)
-                      setPreviewUrl('')
-                    }}
-                    className="px-6 py-3 bg-white/10 hover:bg-white/20 text-white rounded-lg"
-                  >
-                    重新上傳
+                  <button onClick={sharePalette} className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg flex items-center justify-center">
+                    <RefreshCw className="w-5 h-5 mr-2" /> 分享連結
                   </button>
                 </div>
 
-                {/* 配色預覽 (樣本 UI) */}
-                <div className="mt-8 p-4 bg-gray-900 rounded-lg">
-                  <h3 className="text-white mb-2">預覽應用</h3>
-                  <div style={{ backgroundColor: palette[0], color: chroma(palette[0]).darken().hex() }} className="p-4 rounded">
-                    背景色: {palette[0]}
-                  </div>
-                  <button style={{ backgroundColor: palette[1], color: chroma(palette[1]).darken().hex() }} className="mt-2 p-2 rounded">
-                    按鈕色: {palette[1]}
-                  </button>
-                </div>
+                <p className="text-white/80 text-sm">靈感提示: 這些顏色適合 {mode === 'complementary' ? '高對比設計' : mode === 'analogous' ? '柔和界面' : '平衡配色'}。</p>
               </motion.div>
             ) : (
               <div className="text-center py-12">

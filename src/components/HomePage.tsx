@@ -2,7 +2,7 @@ import React, { useState, useCallback } from 'react'
 import { useDropzone } from 'react-dropzone'
 import { Upload, Image as ImageIcon, Palette, Loader2 } from 'lucide-react'
 import { toast } from 'react-hot-toast'
-import Vibrant from 'vibrant.js'
+import chroma from 'chroma-js'
 
 export default function HomePage() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
@@ -46,27 +46,24 @@ export default function HomePage() {
     const img = new Image()
     img.src = previewUrl
     img.onload = () => {
-      new Vibrant(img).getPalette((err, palette) => {
-        if (err) {
-          toast.error('生成失敗，請試另一張圖片')
-          console.error('Vibrant error:', err)
-          setProcessing(false)
-          return
-        }
-        const colors = [
-          palette.Vibrant?.getHex(),
-          palette.Muted?.getHex(),
-          palette.DarkVibrant?.getHex(),
-          palette.DarkMuted?.getHex(),
-          palette.LightVibrant?.getHex(),
-          palette.LightMuted?.getHex(),
-          palette.Vibrant?.getHex(),  // 重複一些以達到 8 個
-          palette.Muted?.getHex()
-        ].filter(color => color);  // 過濾無效顏色
-        setPalette(colors)
-        toast.success('配色生成完成！')
-        setProcessing(false)
-      })
+      const canvas = document.createElement('canvas')
+      canvas.width = img.width
+      canvas.height = img.height
+      const ctx = canvas.getContext('2d')
+      ctx.drawImage(img, 0, 0)
+
+      const imageData = ctx.getImageData(0, 0, img.width, img.height).data
+      const colors = []
+      for (let i = 0; i < imageData.length; i += 4) {
+        const color = chroma(imageData[i], imageData[i+1], imageData[i+2]).hex()
+        colors.push(color)
+      }
+
+      // 提取 8 種獨特顏色 (簡單隨機取樣)
+      const uniqueColors = [...new Set(colors)].slice(0, 8)
+      setPalette(uniqueColors)
+      toast.success('配色生成完成！')
+      setProcessing(false)
     }
     img.onerror = () => {
       setProcessing(false)
@@ -167,7 +164,7 @@ export default function HomePage() {
             )}
           </div>
 
-          {/* Result Section - 不顯示預覽圖，只顯示色塊 */}
+          {/* Result Section */}
           <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-8 border border-white/20">
             <h2 className="text-2xl font-bold text-white mb-6 flex items-center">
               <Palette className="w-6 h-6 mr-2" />
@@ -176,7 +173,7 @@ export default function HomePage() {
 
             {palette.length > 0 ? (
               <div className="space-y-6">
-                <div className="grid grid-cols-4 gap-4 overflow-hidden">  // 添加 overflow-hidden 防止超出
+                <div className="grid grid-cols-4 gap-4">
                   {palette.map((color, index) => (
                     <div key={index} style={{ backgroundColor: color }} className="h-24 rounded-lg flex items-center justify-center text-black font-medium text-sm">
                       {color}

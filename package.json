@@ -61,8 +61,7 @@
     "tailwindcss-animate": "^1.0.7",
     "vaul": "^1.1.2",
     "zod": "^3.24.1",
-    "vibrant.js": "^3.2.1-alpha.1",  
-    "@types/node-vibrant": "^3.2.1" 
+    "chroma-js": "^2.4.2"
   },
   "devDependencies": {
     "@eslint/js": "^9.15.0",

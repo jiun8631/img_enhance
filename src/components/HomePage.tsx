@@ -1,3 +1,5 @@
+// src/components/HomePage.tsx
+
 import React, { useState, useCallback } from 'react'
 import { useDropzone } from 'react-dropzone'
 import { Upload, Image as ImageIcon, Palette, Loader2, Copy, Download, RefreshCw, Sliders, Palette as PaletteIcon } from 'lucide-react'
@@ -9,12 +11,13 @@ export default function HomePage() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [previewUrl, setPreviewUrl] = useState<string>('')
   const [palette, setPalette] = useState<string[]>([])
-  const [mode, setMode] = useState<'standard' | 'complementary' | 'analogous' | 'triadic' | 'morandi' | 'vibrant' | 'muted'>('standard')  // 新增 vibrant 和 muted 模式以增加多樣性
-  const [theme, setTheme] = useState<'neutral' | 'warm' | 'cool' | 'pastel' | 'dark'>('neutral')  // 新增 pastel 和 dark 主題以提升精緻感
-  const [numColors, setNumColors] = useState<4 | 8 | 12 | 16>(8)  // 新增 16 種顏色選項以支持更多顏色搭配
+  const [mode, setMode] = useState<'standard' | 'complementary' | 'analogous' | 'triadic' | 'morandi' | 'vibrant' | 'muted'>('standard')
+  const [theme, setTheme] = useState<'neutral' | 'warm' | 'cool' | 'pastel' | 'dark'>('neutral')
+  const [numColors, setNumColors] = useState<4 | 8 | 12 | 16>(8)
   const [processing, setProcessing] = useState(false)
-  const [editingColor, setEditingColor] = useState<{ index: number, brightness: number, saturation: number, hue: number } | null>(null)  // 新增 hue 調整以增加編輯靈活性
+  const [editingColor, setEditingColor] = useState<{ index: number, brightness: number, saturation: number, hue: number } | null>(null)
 
+  // ... (此處省略您的 JS 邏輯函數，請保留您原本的即可)
   const onDrop = useCallback((acceptedFiles: File[]) => {
     const file = acceptedFiles[0]
     if (file) {
@@ -163,7 +166,7 @@ export default function HomePage() {
     const canvas = document.createElement('canvas')
     canvas.width = 800  // 增加寬度以支持更多顏色
     canvas.height = 200  // 增加高度以提升精緻感
-    const ctx = canvas.getContext('2d')
+    const ctx = canvas.getContext('2d')!
     const width = 800 / palette.length
     palette.forEach((color, index) => {
       ctx.fillStyle = color
@@ -208,6 +211,7 @@ export default function HomePage() {
   const regeneratePalette = () => {
     generatePalette(Math.random())  // 傳入隨機種子以生成不同結果
   }
+
 
   return (
     <div className="min-h-screen pb-24">

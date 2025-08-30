@@ -97,9 +97,23 @@ export default function HomePage() {
 
       // 應用主題
       if (theme === 'warm') {
-        finalPalette = finalPalette.map(color => chroma(color).set('hsl.h', (chroma(color).get('hsl.h') % 360 < 180 ? chroma(color).brighten(0.5) : chroma(color)).hex())
+        finalPalette = finalPalette.map(color => {
+          const h = chroma(color).get('hsl.h') % 360;
+          let newColor = chroma(color);
+          if (h < 180) {
+            newColor = newColor.brighten(0.5);
+          }
+          return newColor.hex();
+        })
       } else if (theme === 'cool') {
-        finalPalette = finalPalette.map(color => chroma(color).set('hsl.h', (chroma(color).get('hsl.h') % 360 > 180 ? chroma(color).desaturate(0.5) : chroma(color)).hex())
+        finalPalette = finalPalette.map(color => {
+          const h = chroma(color).get('hsl.h') % 360;
+          let newColor = chroma(color);
+          if (h > 180) {
+            newColor = newColor.desaturate(0.5);
+          }
+          return newColor.hex();
+        })
       }
 
       setPalette(finalPalette)
@@ -299,7 +313,7 @@ export default function HomePage() {
                       <div className="absolute bottom-1 right-1 flex gap-1">
                         <Sliders className="w-4 h-4" onClick={(e) => {
                           e.stopPropagation()
-                          setEditingColor({ index: index, brightness: 0, saturation: 0 })  // 修正逗號
+                          setEditingColor({ index: index, brightness: 0, saturation: 0 })
                         }} />
                       </div>
                     </motion.div>
@@ -311,11 +325,11 @@ export default function HomePage() {
                     <h3 className="text-white mb-2">編輯顏色 {editingColor.index + 1}</h3>
                     <div className="flex gap-4">
                       <div>
-                        <label className="text-white">亮度</label>  // 改為白色
+                        <label className="text-white">亮度</label>
                         <input type="range" min="-2" max="2" step="0.1" onChange={(e) => editColor(editingColor.index, 'brightness', parseFloat(e.target.value))} />
                       </div>
                       <div>
-                        <label className="text-white">飽和</label>  // 改為白色
+                        <label className="text-white">飽和</label>
                         <input type="range" min="-2" max="2" step="0.1" onChange={(e) => editColor(editingColor.index, 'saturation', parseFloat(e.target.value))} />
                       </div>
                     </div>

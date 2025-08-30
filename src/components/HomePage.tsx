@@ -17,7 +17,6 @@ export default function HomePage() {
   const [processing, setProcessing] = useState(false)
   const [editingColor, setEditingColor] = useState<{ index: number, brightness: number, saturation: number, hue: number } | null>(null)
 
-  // ... (此處省略您的 JS 邏輯函數，請保留您原本的即可)
   const onDrop = useCallback((acceptedFiles: File[]) => {
     const file = acceptedFiles[0]
     if (file) {
@@ -38,12 +37,13 @@ export default function HomePage() {
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
-    accept: {
-      'image/*': ['.jpeg', '.jpg', '.png', '.webp']
-    },
+    accept: { 'image/*': ['.jpeg', '.jpg', '.png', '.webp'] },
     multiple: false
   })
-
+  
+  // ===================================================================================
+  // 【核心升級】: 重寫 generatePalette 函數，採用更智能的顏色提取演算法
+  // ===================================================================================
   const generatePalette = (randomSeed = Math.random()) => {
     if (!previewUrl) {
       toast.error('請先選擇圖片')
@@ -52,13 +52,13 @@ export default function HomePage() {
 
     setProcessing(true)
     const img = new Image()
-    img.crossOrigin = 'Anonymous'  // 確保跨域圖片可處理
+    img.crossOrigin = 'Anonymous'
     img.src = previewUrl
     img.onload = () => {
       const canvas = document.createElement('canvas')
-      const sampleSize = Math.floor(100 + randomSeed * 50)  // 隨機樣本大小 100-150 以增加變化
-      canvas.width = sampleSize
-      canvas.height = Math.floor(img.height * sampleSize / img.width)
+      const MAX_WIDTH = 150 // 限制採樣寬度以提高性能
+      canvas.width = Math.min(MAX_WIDTH, img.width)
+      canvas.height = Math.floor(img.height * canvas.width / img.width)
       const ctx = canvas.getContext('2d')
       if (!ctx) {
         setProcessing(false)
@@ -69,85 +69,105 @@ export default function HomePage() {
 
       const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height).data
       const colorCounts = new Map<string, number>()
-      const step = Math.floor(imageData.length / 4 / (numColors * 100)) + Math.floor(randomSeed * 10)  // 隨機步長以變化
-      for (let i = 0; i < imageData.length; i += step * 4) {
+
+      // 步驟 1: 採樣像素並過濾掉"無聊"的顏色 (太黑、太白、太灰)
+      for (let i = 0; i < imageData.length; i += 4) {
         const r = imageData[i]
-        const g = imageData[i+1]
-        const b = imageData[i+2]
-        // 添加小隨機擾動以增加多樣性
-        const perturbedR = Math.min(255, Math.max(0, r + Math.floor((randomSeed - 0.5) * 10)))
-        const perturbedG = Math.min(255, Math.max(0, g + Math.floor((randomSeed - 0.5) * 10)))
-        const perturbedB = Math.min(255, Math.max(0, b + Math.floor((randomSeed - 0.5) * 10)))
-        const key = `${perturbedR},${perturbedG},${perturbedB}`
-        colorCounts.set(key, (colorCounts.get(key) || 0) + 1)
-      }
+        const g = imageData[i + 1]
+        const b = imageData[i + 2]
+        const hsl = chroma(r, g, b).hsl()
 
-      // 按頻率排序，但添加隨機權重以變化
-      const sortedColors = Array.from(colorCounts.entries())
-        .sort((a, b) => (b[1] + randomSeed * b[1] * 0.2) - (a[1] + randomSeed * a[1] * 0.2))
-        .map(entry => entry[0].split(',').map(Number))
-
-      // 轉為 hex 並過濾相似顏色，確保多樣性
-      const uniqueColors: string[] = []
-      const distanceThreshold = 0.12 + randomSeed * 0.08  // 隨機閾值 0.12-0.2
-      for (const rgb of sortedColors) {
-        const hex = chroma(rgb[0], rgb[1], rgb[2]).hex()
-        if (!uniqueColors.some(c => chroma.distance(c, hex) < distanceThreshold)) {
-          uniqueColors.push(hex)
+        // 過濾條件: 飽和度 > 10%, 亮度在 5% 到 95% 之間
+        if (hsl[1] > 0.1 && hsl[2] > 0.05 && hsl[2] < 0.95) {
+          const key = `${r},${g},${b}`
+          colorCounts.set(key, (colorCounts.get(key) || 0) + 1)
         }
-        if (uniqueColors.length >= numColors * 3) break
       }
 
-      let finalPalette = uniqueColors.slice(0, numColors)
+      // 步驟 2: 色相分桶 (Hue Bucketing) - 確保顏色多樣性
+      const HUE_BUCKETS = 12 // 將 360 度色相環分為 12 個桶 (每個 30 度)
+      const buckets = Array.from({ length: HUE_BUCKETS }, () => [] as { color: string, count: number, saturation: number }[])
 
-      // 改進模式應用：生成更和諧、多樣的好看搭配，添加隨機偏移
+      for (const [key, count] of colorCounts.entries()) {
+        const [r, g, b] = key.split(',').map(Number)
+        const color = chroma(r, g, b)
+        const hue = color.hsl()[0]
+        const saturation = color.hsl()[1]
+        
+        // 如果色相是 NaN (例如灰色)，則跳過
+        if (isNaN(hue)) continue;
+
+        const bucketIndex = Math.floor(hue / (360 / HUE_BUCKETS))
+        buckets[bucketIndex].push({ color: color.hex(), count, saturation })
+      }
+
+      // 步驟 3: 從每個桶中選出最有代表性的顏色
+      const representativeColors: { color: string, count: number }[] = []
+      buckets.forEach(bucket => {
+        if (bucket.length > 0) {
+          // 在每個桶中，按像素數量排序，選出最多的那個
+          bucket.sort((a, b) => b.count - a.count)
+          representativeColors.push({ color: bucket[0].color, count: bucket[0].count })
+        }
+      })
+
+      // 步驟 4: 補充顏色 - 如果桶選出的顏色不夠，從整體最頻繁的顏色中補充
+      if (representativeColors.length < numColors) {
+          const sortedAllColors = Array.from(colorCounts.entries())
+            .sort((a, b) => b[1] - a[1])
+            .map(([key]) => chroma(key.split(',').map(Number) as [number, number, number]).hex());
+          
+          for (const color of sortedAllColors) {
+              if (representativeColors.length >= numColors) break;
+              if (!representativeColors.some(rc => rc.color === color)) {
+                  representativeColors.push({ color, count: 0 }); // count 不重要了
+              }
+          }
+      }
+
+      // 步驟 5: 根據代表性（出現頻率）對選出的顏色進行最終排序，並選取所需數量
+      representativeColors.sort((a, b) => b.count - a.count)
+      let initialPalette = representativeColors.map(c => c.color).slice(0, numColors);
+
+      // 步驟 6: 應用模式和主題 (這部分邏輯保持不變)
+      let finalPalette = [...initialPalette];
+
       if (mode === 'complementary') {
-        finalPalette = finalPalette.flatMap(color => [color, chroma(color).set('hsl.h', '+180' + (randomSeed * 20 - 10)).hex()])
+        finalPalette = initialPalette.flatMap(color => [color, chroma(color).set('hsl.h', `+180`).hex()]).slice(0, numColors)
       } else if (mode === 'analogous') {
-        finalPalette = finalPalette.flatMap(color => chroma.scale([chroma(color).set('hsl.h', '-45' + (randomSeed * 10 - 5)), color, chroma(color).set('hsl.h', '+45' + (randomSeed * 10 - 5))]).mode('lch').colors(3))
+        finalPalette = initialPalette.flatMap(color => chroma.scale([chroma(color).set('hsl.h', `-30`), color, chroma(color).set('hsl.h', `+30`)]).mode('lch').colors(3)).slice(0, numColors)
       } else if (mode === 'triadic') {
-        finalPalette = finalPalette.flatMap(color => [color, chroma(color).set('hsl.h', '+120' + (randomSeed * 10 - 5)).hex(), chroma(color).set('hsl.h', '+240' + (randomSeed * 10 - 5)).hex()])
+        finalPalette = initialPalette.flatMap(color => [color, chroma(color).set('hsl.h', `+120`).hex(), chroma(color).set('hsl.h', `+240`).hex()]).slice(0, numColors)
       } else if (mode === 'morandi') {
-        finalPalette = finalPalette.map(color => chroma(color).desaturate(1.5 + randomSeed * 0.5).brighten(0.3 + randomSeed * 0.2).mix('lightgray', 0.2 + randomSeed * 0.1).hex())
+        finalPalette = initialPalette.map(color => chroma(color).desaturate(1.5).brighten(0.3).mix('lightgray', 0.2).hex())
       } else if (mode === 'vibrant') {
-        finalPalette = finalPalette.map(color => chroma(color).saturate(1.5 + randomSeed * 0.5).brighten(1.0 + randomSeed * 0.3).hex())
+        finalPalette = initialPalette.map(color => chroma(color).saturate(2).brighten(0.5).hex())
       } else if (mode === 'muted') {
-        finalPalette = finalPalette.map(color => chroma(color).desaturate(2.5 + randomSeed * 0.5).darken(0.3 + randomSeed * 0.2).hex())
+        finalPalette = initialPalette.map(color => chroma(color).desaturate(2).darken(0.3).hex())
       }
 
-      // 確保最終顏色數量匹配 numColors，並去除重複
-      finalPalette = [...new Set(finalPalette)].slice(0, numColors)
+      finalPalette = [...new Set(finalPalette)].slice(0, numColors);
 
-      // 如果不足，補充變體
       while (finalPalette.length < numColors) {
-        const base = finalPalette[finalPalette.length % finalPalette.length] || chroma.random().hex()
-        finalPalette.push(chroma(base).set('hsl.h', '+ ' + (randomSeed * 60 - 30)).hex())
+        const base = finalPalette[Math.floor(randomSeed * finalPalette.length)] || chroma.random().hex()
+        finalPalette.push(chroma(base).set('hsl.h', `+${(randomSeed - 0.5) * 60}`).hex())
       }
-
-      // 改進主題應用：更精細調整以匹配不同顏色搭配
+      
       if (theme === 'warm') {
-        finalPalette = finalPalette.map(color => {
-          let h = chroma(color).get('hsl.h') % 360
-          h = (h < 60 || h > 300) ? h : (h + 30 + (randomSeed * 20 - 10)) % 360  // 偏向暖色調
-          return chroma(color).set('hsl.h', h).brighten(0.6 + randomSeed * 0.2).hex()
-        })
+        finalPalette = finalPalette.map(color => chroma(color).set('lab.a', `+${10 + randomSeed * 10}`).hex());
       } else if (theme === 'cool') {
-        finalPalette = finalPalette.map(color => {
-          let h = chroma(color).get('hsl.h') % 360
-          h = (h > 180 && h < 300) ? h : (h - 60 + (randomSeed * 20 - 10) + 360) % 360  // 偏向冷色調
-          return chroma(color).set('hsl.h', h).desaturate(0.4 + randomSeed * 0.2).hex()
-        })
-      } else if (theme === 'pastel') {  // 新主題：生成柔和粉彩色，增加精緻感
-        finalPalette = finalPalette.map(color => chroma(color).desaturate(1 + randomSeed * 0.5).brighten(1.5 + randomSeed * 0.3).hex())
-      } else if (theme === 'dark') {  // 新主題：生成深色方案，適合現代設計
-        finalPalette = finalPalette.map(color => chroma(color).darken(1.2 + randomSeed * 0.3).desaturate(0.5 + randomSeed * 0.2).hex())
+        finalPalette = finalPalette.map(color => chroma(color).set('lab.b', `-${10 + randomSeed * 10}`).hex());
+      } else if (theme === 'pastel') {
+        finalPalette = finalPalette.map(color => chroma(color).desaturate(1).brighten(1.5).hex())
+      } else if (theme === 'dark') {
+        finalPalette = finalPalette.map(color => chroma(color).darken(1.2).desaturate(0.5).hex())
       }
-
-      // 排序顏色以創建更視覺吸引的漸變效果（從亮到暗），添加隨機
-      finalPalette.sort((a, b) => (chroma(b).luminance() - chroma(a).luminance()) + (randomSeed - 0.5) * 0.2)
-
+      
+      // 最終排序，以亮度排序，便於查看
+      finalPalette.sort((a, b) => chroma(a).luminance() - chroma(b).luminance())
+      
       setPalette(finalPalette)
-      toast.success('配色生成完成！現在顏色更多樣且和諧。')
+      toast.success('配色生成完成！演算法已升級，更多樣！')
       setProcessing(false)
     }
     img.onerror = () => {
@@ -155,6 +175,9 @@ export default function HomePage() {
       toast.error('圖片加載失敗')
     }
   }
+  // ===================================================================================
+  // 演算法升級結束
+  // ===================================================================================
 
   const copyColor = (color: string) => {
     navigator.clipboard.writeText(color)
@@ -164,14 +187,13 @@ export default function HomePage() {
   const downloadPalette = () => {
     if (palette.length === 0) return
     const canvas = document.createElement('canvas')
-    canvas.width = 800  // 增加寬度以支持更多顏色
-    canvas.height = 200  // 增加高度以提升精緻感
+    canvas.width = 800
+    canvas.height = 200
     const ctx = canvas.getContext('2d')!
     const width = 800 / palette.length
     palette.forEach((color, index) => {
       ctx.fillStyle = color
       ctx.fillRect(index * width, 0, width, 200)
-      // 新增顏色代碼文字標籤，提升專業感
       ctx.fillStyle = chroma.contrast(color, 'white') > 4.5 ? 'white' : 'black'
       ctx.font = '12px Arial'
       ctx.fillText(color, index * width + 10, 180)
@@ -209,7 +231,7 @@ export default function HomePage() {
   }
 
   const regeneratePalette = () => {
-    generatePalette(Math.random())  // 傳入隨機種子以生成不同結果
+    generatePalette(Math.random())
   }
 
 
@@ -224,7 +246,6 @@ export default function HomePage() {
           智能提取並生成和諧配色，支持多模式、主題和進階編輯 - 設計師必備工具
         </p>
         
-        {/* Free Notice */}
         <div className="bg-green-600/20 border border-green-400/30 rounded-lg p-4 mb-8 max-w-md mx-auto">
           <div className="text-green-400 font-semibold">
             🎉 完全免費使用，無需註冊！
@@ -349,13 +370,21 @@ export default function HomePage() {
 
             {palette.length > 0 ? (
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5 }} className="space-y-6">
-                <div className="grid grid-cols-4 gap-4">
+                <div className={`grid grid-cols-4 md:grid-cols-${Math.min(numColors, 8)} gap-4`}>
                   {palette.map((color, index) => (
-                    <motion.div key={index} initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: index * 0.05 }} style={{ backgroundColor: color }} className="h-24 rounded-lg flex flex-col items-center justify-center text-black font-medium text-sm cursor-pointer relative group" onClick={() => copyColor(color)}>
-                      <span className="mb-1">{color}</span>
-                      <Copy className="w-4 h-4" />
-                      <div className="absolute bottom-1 right-1 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Sliders className="w-4 h-4" onClick={(e) => {
+                    <motion.div 
+                      key={index} 
+                      initial={{ scale: 0 }} 
+                      animate={{ scale: 1 }} 
+                      transition={{ delay: index * 0.05 }} 
+                      style={{ backgroundColor: color }} 
+                      className="h-24 rounded-lg flex flex-col items-center justify-center text-black font-medium text-sm cursor-pointer relative group" 
+                      onClick={() => copyColor(color)}
+                    >
+                      <span className="mb-1" style={{ color: chroma.contrast(color, 'white') > 4.5 ? 'white' : 'black' }}>{color}</span>
+                      <Copy className="w-4 h-4" style={{ color: chroma.contrast(color, 'white') > 4.5 ? 'white' : 'black' }} />
+                      <div className="absolute top-1 right-1 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Sliders className="w-4 h-4 text-white p-0.5 bg-black/30 rounded" onClick={(e) => {
                           e.stopPropagation()
                           setEditingColor({ index: index, brightness: 0, saturation: 0, hue: 0 })
                         }} />
@@ -366,22 +395,22 @@ export default function HomePage() {
                 
                 {editingColor !== null && (
                   <div className="p-4 bg-gray-900 rounded-lg">
-                    <h3 className="text-white mb-2">編輯顏色 {editingColor.index + 1}</h3>
+                    <h3 className="text-white mb-2">編輯顏色: <span className="font-mono p-1 rounded" style={{backgroundColor: palette[editingColor.index]}}>{palette[editingColor.index]}</span></h3>
                     <div className="space-y-4">
                       <div>
                         <label className="text-white block mb-1">亮度</label>
-                        <input type="range" min="-3" max="3" step="0.1" defaultValue="0" onChange={(e) => editColor(editingColor.index, 'brightness', parseFloat(e.target.value))} className="w-full" />
+                        <input type="range" min="-1.5" max="1.5" step="0.1" defaultValue="0" onChange={(e) => editColor(editingColor.index, 'brightness', parseFloat(e.target.value))} className="w-full" />
                       </div>
                       <div>
                         <label className="text-white block mb-1">飽和度</label>
-                        <input type="range" min="-3" max="3" step="0.1" defaultValue="0" onChange={(e) => editColor(editingColor.index, 'saturation', parseFloat(e.target.value))} className="w-full" />
+                        <input type="range" min="-1.5" max="1.5" step="0.1" defaultValue="0" onChange={(e) => editColor(editingColor.index, 'saturation', parseFloat(e.target.value))} className="w-full" />
                       </div>
                       <div>
                         <label className="text-white block mb-1">色相</label>
                         <input type="range" min="-180" max="180" step="1" defaultValue="0" onChange={(e) => editColor(editingColor.index, 'hue', parseFloat(e.target.value))} className="w-full" />
                       </div>
                     </div>
-                    <button onClick={() => setEditingColor(null)} className="mt-4 bg-red-600 py-1 px-3 rounded text-white">關閉</button>
+                    <button onClick={() => setEditingColor(null)} className="mt-4 bg-red-600 hover:bg-red-700 py-1 px-3 rounded text-white">關閉</button>
                   </div>
                 )}
                 
@@ -413,18 +442,17 @@ export default function HomePage() {
               </div>
             )}
 
-            {/* Adsense 廣告位 (替換為你的代碼) */}
             <div className="mt-8 bg-gray-800/90 rounded-xl p-6">
               <div className="text-center text-gray-400 text-sm mb-2">
                 廣告區域
               </div>
               <ins className="adsbygoogle"
                    style={{ display: "block" }}
-                   data-ad-client="ca-pub-XXXXX"  // 替換為你的 Adsense ca-pub ID
-                   data-ad-slot="XXXXX"  // 替換為你的廣告槽 ID
+                   data-ad-client="ca-pub-XXXXX"
+                   data-ad-slot="XXXXX"
                    data-ad-format="auto"
                    data-full-width-responsive="true"></ins>
-              <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
+              {/* <script>(adsbygoogle = window.adsbygoogle || []).push({});</script> */}
             </div>
           </div>
         </div>

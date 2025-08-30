@@ -9,11 +9,11 @@ export default function HomePage() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [previewUrl, setPreviewUrl] = useState<string>('')
   const [palette, setPalette] = useState<string[]>([])
-  const [mode, setMode] = useState<'standard' | 'complementary' | 'analogous' | 'triadic'>('standard')
+  const [mode, setMode] = useState<'standard' | 'complementary' | 'analogous' | 'triadic' | 'morandi'>('standard')  // 加回 morandi
   const [theme, setTheme] = useState<'neutral' | 'warm' | 'cool'>('neutral')
   const [numColors, setNumColors] = useState<4 | 8 | 12>(8)
   const [processing, setProcessing] = useState(false)
-  const [editingColor, setEditingColor] = useState<{ index: number, brightness: number, saturation: number } | null>(null)  // 修正逗號
+  const [editingColor, setEditingColor] = useState<{ index: number, brightness: number, saturation: number } | null>(null)
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
     const file = acceptedFiles[0]
@@ -91,23 +91,16 @@ export default function HomePage() {
       } else if (mode === 'triadic') {
         finalPalette = finalPalette.map(color => [color, chroma(color).set('hsl.h', '+120').hex(), chroma(color).set('hsl.h', '+240').hex()])
         finalPalette = finalPalette.flat().slice(0, numColors)
+      } else if (mode === 'morandi') {
+        finalPalette = finalPalette.map(color => chroma(color).desaturate(1.8).brighten(0.3).mix('gray', 0.2).hex())  // 莫蘭迪：低飽和 + 灰調 + 柔和搭配
       }
 
       // 應用主題
-      // 應用主題
-if (theme === 'warm') {
-  finalPalette = finalPalette.map(color =>
-    chroma(color).get('hsl.h') % 360 < 180
-      ? chroma(color).brighten(0.5).hex()
-      : chroma(color).hex()
-  )
-} else if (theme === 'cool') {
-  finalPalette = finalPalette.map(color =>
-    chroma(color).get('hsl.h') % 360 > 180
-      ? chroma(color).desaturate(0.5).hex()
-      : chroma(color).hex()
-  )
-}
+      if (theme === 'warm') {
+        finalPalette = finalPalette.map(color => chroma(color).set('hsl.h', (chroma(color).get('hsl.h') % 360 < 180 ? chroma(color).brighten(0.5) : chroma(color)).hex())
+      } else if (theme === 'cool') {
+        finalPalette = finalPalette.map(color => chroma(color).set('hsl.h', (chroma(color).get('hsl.h') % 360 > 180 ? chroma(color).desaturate(0.5) : chroma(color)).hex())
+      }
 
       setPalette(finalPalette)
       toast.success('配色生成完成！')
@@ -249,6 +242,7 @@ if (theme === 'warm') {
                   <option value="complementary">互補模式</option>
                   <option value="analogous">類似模式</option>
                   <option value="triadic">三色模式</option>
+                  <option value="morandi">莫蘭迪模式</option>  // 加回莫蘭迪
                 </select>
                 <select
                   value={theme}
@@ -317,11 +311,11 @@ if (theme === 'warm') {
                     <h3 className="text-white mb-2">編輯顏色 {editingColor.index + 1}</h3>
                     <div className="flex gap-4">
                       <div>
-                        <label>亮度</label>
+                        <label className="text-white">亮度</label>  // 改為白色
                         <input type="range" min="-2" max="2" step="0.1" onChange={(e) => editColor(editingColor.index, 'brightness', parseFloat(e.target.value))} />
                       </div>
                       <div>
-                        <label>飽和</label>
+                        <label className="text-white">飽和</label>  // 改為白色
                         <input type="range" min="-2" max="2" step="0.1" onChange={(e) => editColor(editingColor.index, 'saturation', parseFloat(e.target.value))} />
                       </div>
                     </div>
@@ -341,7 +335,7 @@ if (theme === 'warm') {
                   </button>
                 </div>
 
-                <p className="text-white/80 text-sm">靈感提示: 這些顏色適合 {mode === 'complementary' ? '高對比設計' : mode === 'analogous' ? '柔和界面' : '平衡配色'}。</p>
+                <p className="text-white/80 text-sm">靈感提示: 這些顏色適合 {mode === 'complementary' ? '高對比設計' : mode === 'analogous' ? '柔和界面' : mode === 'triadic' ? '動態配色' : mode === 'morandi' ? '精緻柔和設計' : '平衡配色'}。</p>
               </motion.div>
             ) : (
               <div className="text-center py-12">

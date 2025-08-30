@@ -9,7 +9,7 @@ export default function HomePage() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [previewUrl, setPreviewUrl] = useState<string>('')
   const [palette, setPalette] = useState<string[]>([])
-  const [mode, setMode] = useState<'standard' | 'complementary' | 'analogous' | 'triadic' | 'morandi'>('standard')  // 加回 morandi
+  const [mode, setMode] = useState<'standard' | 'complementary' | 'analogous' | 'triadic' | 'morandi'>('standard')
   const [theme, setTheme] = useState<'neutral' | 'warm' | 'cool'>('neutral')
   const [numColors, setNumColors] = useState<4 | 8 | 12>(8)
   const [processing, setProcessing] = useState(false)
@@ -92,27 +92,19 @@ export default function HomePage() {
         finalPalette = finalPalette.map(color => [color, chroma(color).set('hsl.h', '+120').hex(), chroma(color).set('hsl.h', '+240').hex()])
         finalPalette = finalPalette.flat().slice(0, numColors)
       } else if (mode === 'morandi') {
-        finalPalette = finalPalette.map(color => chroma(color).desaturate(1.8).brighten(0.3).mix('gray', 0.2).hex())  // 莫蘭迪：低飽和 + 灰調 + 柔和搭配
+        finalPalette = finalPalette.map(color => chroma(color).desaturate(1.2).brighten(0.5).mix('lightgray', 0.1).hex())  // 優化莫蘭迪：降低灰度，保留更多原色，生成柔和好看搭配
       }
 
       // 應用主題
       if (theme === 'warm') {
         finalPalette = finalPalette.map(color => {
-          const h = chroma(color).get('hsl.h') % 360;
-          let newColor = chroma(color);
-          if (h < 180) {
-            newColor = newColor.brighten(0.5);
-          }
-          return newColor.hex();
+          const h = chroma(color).get('hsl.h') % 360
+          return (h < 180 ? chroma(color).brighten(0.5) : chroma(color)).hex()
         })
       } else if (theme === 'cool') {
         finalPalette = finalPalette.map(color => {
-          const h = chroma(color).get('hsl.h') % 360;
-          let newColor = chroma(color);
-          if (h > 180) {
-            newColor = newColor.desaturate(0.5);
-          }
-          return newColor.hex();
+          const h = chroma(color).get('hsl.h') % 360
+          return (h > 180 ? chroma(color).desaturate(0.5) : chroma(color)).hex()
         })
       }
 
@@ -256,7 +248,7 @@ export default function HomePage() {
                   <option value="complementary">互補模式</option>
                   <option value="analogous">類似模式</option>
                   <option value="triadic">三色模式</option>
-                  <option value="morandi">莫蘭迪模式</option>  // 加回莫蘭迪
+                  <option value="morandi">莫蘭迪模式</option>
                 </select>
                 <select
                   value={theme}

@@ -4,17 +4,16 @@ import { Upload, Image as ImageIcon, Palette, Loader2, Copy, Download, RefreshCw
 import { toast } from 'react-hot-toast'
 import chroma from 'chroma-js'
 import { motion } from 'framer-motion'
-import ColorThief from 'colorthief'  // 新增 color-thief 庫來改進顏色提取
 
 export default function HomePage() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [previewUrl, setPreviewUrl] = useState<string>('')
   const [palette, setPalette] = useState<string[]>([])
-  const [mode, setMode] = useState<'standard' | 'complementary' | 'analogous' | 'triadic' | 'morandi' | 'vibrant' | 'muted'>('standard')  // 新增 vibrant 和 muted 模式以增加多樣性
+  const [mode, setMode] = useState<'standard' | 'complementary' | 'analogous' | 'triadic' | 'morandi' | 'vibrant' | 'muted'>('standard')  
   const [theme, setTheme] = useState<'neutral' | 'warm' | 'cool' | 'pastel' | 'dark'>('neutral')  // 新增 pastel 和 dark 主題以提升精緻感
-  const [numColors, setNumColors] = useState<4 | 8 | 12 | 16>(8)  // 新增 16 種顏色選項以支持更多顏色搭配
+  const [numColors, setNumColors] = useState<4 | 8 | 12 | 16>(8)  
   const [processing, setProcessing] = useState(false)
-  const [editingColor, setEditingColor] = useState<{ index: number, brightness: number, saturation: number, hue: number } | null>(null)  // 新增 hue 調整以增加編輯靈活性
+  const [editingColor, setEditingColor] = useState<{ index: number, brightness: number, saturation: number, hue: number } | null>(null)  
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
     const file = acceptedFiles[0]
@@ -53,20 +52,41 @@ export default function HomePage() {
     img.crossOrigin = 'Anonymous'  // 確保跨域圖片可處理
     img.src = previewUrl
     img.onload = () => {
-      // 使用 ColorThief 提取主導顏色，提升顏色多樣性和準確性（取代原有隨機取樣）
-      const colorThief = new ColorThief()
-      const dominantColors = colorThief.getPalette(img, numColors * 2)  // 提取更多顏色以便後續處理
-      let colors = dominantColors.map(([r, g, b]) => chroma(r, g, b).hex())
+      const canvas = document.createElement('canvas')
+      const sampleSize = 100  // 調整取樣大小以提升準確性
+      canvas.width = sampleSize
+      canvas.height = Math.floor(img.height * sampleSize / img.width)
+      const ctx = canvas.getContext('2d')
+      if (!ctx) {
+        setProcessing(false)
+        toast.error('瀏覽器不支持')
+        return
+      }
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
 
-      // 過濾相似顏色，使用更嚴格的距離計算以確保多樣性
-      const uniqueColors = []
-      colors.forEach(color => {
-        if (!uniqueColors.some(c => chroma.distance(c, color) < 0.15)) {  // 降低閾值到 0.15 以允許更多差異
-          uniqueColors.push(color)
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height).data
+      const colorCounts = new Map<string, number>()
+      for (let i = 0; i < imageData.length; i += 4) {
+        const key = `${imageData[i]},${imageData[i+1]},${imageData[i+2]}`
+        colorCounts.set(key, (colorCounts.get(key) || 0) + 1)
+      }
+
+      // 按頻率排序
+      const sortedColors = Array.from(colorCounts.entries())
+        .sort((a, b) => b[1] - a[1])
+        .map(entry => entry[0].split(',').map(Number))
+
+      // 轉為 hex 並過濾相似顏色，確保多樣性
+      const uniqueColors: string[] = []
+      for (const rgb of sortedColors) {
+        const hex = chroma(rgb[0], rgb[1], rgb[2]).hex()
+        if (!uniqueColors.some(c => chroma.distance(c, hex) < 0.12)) {  // 降低閾值以增加多樣性
+          uniqueColors.push(hex)
         }
-      })
+        if (uniqueColors.length >= numColors * 3) break  // 限制最大數量以優化性能
+      }
 
-      let finalPalette = uniqueColors.slice(0, numColors)
+      let finalPalette = uniqueColors.slice(0, numColors * 2)  // 取更多以便模式應用
 
       // 改進模式應用：生成更和諧、多樣的好看搭配
       if (mode === 'complementary') {
@@ -78,17 +98,19 @@ export default function HomePage() {
       } else if (mode === 'morandi') {
         finalPalette = finalPalette.map(color => chroma(color).desaturate(1.5).brighten(0.3).mix('lightgray', 0.2).hex())  // 調整參數：增加灰度混入以柔和，但保留更多原色多樣性
       } else if (mode === 'vibrant') {  // 新模式：強調亮色和對比，適合多亮色圖片
-        finalPalette = finalPalette.map(color => chroma(color).saturate(1.2).brighten(0.8).hex())
+        finalPalette = finalPalette.map(color => chroma(color).saturate(1.5).brighten(1.0).hex())
       } else if (mode === 'muted') {  // 新模式：生成柔和、低飽和搭配
-        finalPalette = finalPalette.map(color => chroma(color).desaturate(2).darken(0.5).hex())
+        finalPalette = finalPalette.map(color => chroma(color).desaturate(2.5).darken(0.3).hex())
       }
 
-      // 確保最終顏色數量匹配 numColors，並隨機補充如果不足
-      if (finalPalette.length < numColors) {
-        const extraColors = chroma.random().hex()
-        finalPalette.push(...Array(numColors - finalPalette.length).fill(extraColors))
+      // 確保最終顏色數量匹配 numColors，並去除重複
+      finalPalette = [...new Set(finalPalette)].slice(0, numColors)
+
+      // 如果不足，補充變體
+      while (finalPalette.length < numColors) {
+        const base = finalPalette[finalPalette.length % finalPalette.length] || chroma.random().hex()
+        finalPalette.push(chroma(base).brighten(Math.random() - 0.5).hex())
       }
-      finalPalette = finalPalette.slice(0, numColors)
 
       // 改進主題應用：更精細調整以匹配不同顏色搭配
       if (theme === 'warm') {

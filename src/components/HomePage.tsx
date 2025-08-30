@@ -4,16 +4,18 @@ import { Upload, Image as ImageIcon, Palette, Loader2, Copy, Download, RefreshCw
 import { toast } from 'react-hot-toast'
 import chroma from 'chroma-js'
 import { motion } from 'framer-motion'
+// @ts-ignore
+import ColorThief from 'colorthief'
 
 export default function HomePage() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [previewUrl, setPreviewUrl] = useState<string>('')
   const [palette, setPalette] = useState<string[]>([])
-  const [mode, setMode] = useState<'standard' | 'complementary' | 'analogous' | 'triadic' | 'morandi' | 'vibrant' | 'muted'>('standard')  
+  const [mode, setMode] = useState<'standard' | 'complementary' | 'analogous' | 'triadic' | 'morandi' | 'vibrant' | 'muted'>('standard')  // 新增 vibrant 和 muted 模式以增加多樣性
   const [theme, setTheme] = useState<'neutral' | 'warm' | 'cool' | 'pastel' | 'dark'>('neutral')  // 新增 pastel 和 dark 主題以提升精緻感
-  const [numColors, setNumColors] = useState<4 | 8 | 12 | 16>(8)  
+  const [numColors, setNumColors] = useState<4 | 8 | 12 | 16>(8)  // 新增 16 種顏色選項以支持更多顏色搭配
   const [processing, setProcessing] = useState(false)
-  const [editingColor, setEditingColor] = useState<{ index: number, brightness: number, saturation: number, hue: number } | null>(null)  
+  const [editingColor, setEditingColor] = useState<{ index: number, brightness: number, saturation: number, hue: number } | null>(null)  // 新增 hue 調整以增加編輯靈活性
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
     const file = acceptedFiles[0]
@@ -41,7 +43,7 @@ export default function HomePage() {
     multiple: false
   })
 
-  const generatePalette = () => {
+  const generatePalette = (randomSeed = Math.random()) => {
     if (!previewUrl) {
       toast.error('請先選擇圖片')
       return
@@ -52,87 +54,69 @@ export default function HomePage() {
     img.crossOrigin = 'Anonymous'  // 確保跨域圖片可處理
     img.src = previewUrl
     img.onload = () => {
-      const canvas = document.createElement('canvas')
-      const sampleSize = 100  // 調整取樣大小以提升準確性
-      canvas.width = sampleSize
-      canvas.height = Math.floor(img.height * sampleSize / img.width)
-      const ctx = canvas.getContext('2d')
-      if (!ctx) {
-        setProcessing(false)
-        toast.error('瀏覽器不支持')
-        return
-      }
-      ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
+      // 使用 ColorThief 提取主導顏色，提升顏色多樣性和準確性
+      const colorThief = new ColorThief()
+      const quality = Math.floor(5 + randomSeed * 20)  // 隨機 quality 5-25 以增加變化
+      const dominantColors = colorThief.getPalette(img, numColors * 3, quality)  // 提取更多顏色以便處理和變化
+      let colors = dominantColors.map(([r, g, b]) => chroma(r, g, b).hex())
 
-      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height).data
-      const colorCounts = new Map<string, number>()
-      for (let i = 0; i < imageData.length; i += 4) {
-        const key = `${imageData[i]},${imageData[i+1]},${imageData[i+2]}`
-        colorCounts.set(key, (colorCounts.get(key) || 0) + 1)
-      }
+      // 隨機打亂以增加重新生成的差異性
+      colors = colors.sort(() => randomSeed - Math.random())
 
-      // 按頻率排序
-      const sortedColors = Array.from(colorCounts.entries())
-        .sort((a, b) => b[1] - a[1])
-        .map(entry => entry[0].split(',').map(Number))
-
-      // 轉為 hex 並過濾相似顏色，確保多樣性
-      const uniqueColors: string[] = []
-      for (const rgb of sortedColors) {
-        const hex = chroma(rgb[0], rgb[1], rgb[2]).hex()
-        if (!uniqueColors.some(c => chroma.distance(c, hex) < 0.12)) {  // 降低閾值以增加多樣性
-          uniqueColors.push(hex)
+      // 過濾相似顏色，使用動態閾值以確保多樣性
+      const distanceThreshold = 0.1 + randomSeed * 0.1  // 0.1-0.2 隨機閾值
+      const uniqueColors = []
+      colors.forEach(color => {
+        if (!uniqueColors.some(c => chroma.distance(c, color) < distanceThreshold)) {
+          uniqueColors.push(color)
         }
-        if (uniqueColors.length >= numColors * 3) break  // 限制最大數量以優化性能
-      }
+      })
 
-      let finalPalette = uniqueColors.slice(0, numColors * 2)  // 取更多以便模式應用
+      let finalPalette = uniqueColors.slice(0, numColors)
 
       // 改進模式應用：生成更和諧、多樣的好看搭配
       if (mode === 'complementary') {
-        finalPalette = finalPalette.flatMap(color => [color, chroma(color).set('hsl.h', '+180').hex()])
+        finalPalette = finalPalette.flatMap(color => [color, chroma(color).set('hsl.h', '+180' + (randomSeed * 20 - 10)).hex()])  // 添加小隨機偏移
       } else if (mode === 'analogous') {
-        finalPalette = finalPalette.flatMap(color => chroma.scale([chroma(color).set('hsl.h', '-45'), color, chroma(color).set('hsl.h', '+45')]).mode('lch').colors(3))  // 使用 lch 模式提升和諧感，擴大角度範圍
+        finalPalette = finalPalette.flatMap(color => chroma.scale([chroma(color).set('hsl.h', '-45' + (randomSeed * 10 - 5)), color, chroma(color).set('hsl.h', '+45' + (randomSeed * 10 - 5))]).mode('lch').colors(3))
       } else if (mode === 'triadic') {
-        finalPalette = finalPalette.flatMap(color => [color, chroma(color).set('hsl.h', '+120').hex(), chroma(color).set('hsl.h', '+240').hex()])
+        finalPalette = finalPalette.flatMap(color => [color, chroma(color).set('hsl.h', '+120' + (randomSeed * 10 - 5)).hex(), chroma(color).set('hsl.h', '+240' + (randomSeed * 10 - 5)).hex()])
       } else if (mode === 'morandi') {
-        finalPalette = finalPalette.map(color => chroma(color).desaturate(1.5).brighten(0.3).mix('lightgray', 0.2).hex())  // 調整參數：增加灰度混入以柔和，但保留更多原色多樣性
-      } else if (mode === 'vibrant') {  // 新模式：強調亮色和對比，適合多亮色圖片
-        finalPalette = finalPalette.map(color => chroma(color).saturate(1.5).brighten(1.0).hex())
-      } else if (mode === 'muted') {  // 新模式：生成柔和、低飽和搭配
-        finalPalette = finalPalette.map(color => chroma(color).desaturate(2.5).darken(0.3).hex())
+        finalPalette = finalPalette.map(color => chroma(color).desaturate(1.5 + randomSeed * 0.5).brighten(0.3 + randomSeed * 0.2).mix('lightgray', 0.2 + randomSeed * 0.1).hex())
+      } else if (mode === 'vibrant') {
+        finalPalette = finalPalette.map(color => chroma(color).saturate(1.5 + randomSeed * 0.5).brighten(1.0 + randomSeed * 0.3).hex())
+      } else if (mode === 'muted') {
+        finalPalette = finalPalette.map(color => chroma(color).desaturate(2.5 + randomSeed * 0.5).darken(0.3 + randomSeed * 0.2).hex())
       }
 
-      // 確保最終顏色數量匹配 numColors，並去除重複
-      finalPalette = [...new Set(finalPalette)].slice(0, numColors)
-
-      // 如果不足，補充變體
+      // 確保最終顏色數量匹配 numColors，並隨機補充如果不足
       while (finalPalette.length < numColors) {
-        const base = finalPalette[finalPalette.length % finalPalette.length] || chroma.random().hex()
-        finalPalette.push(chroma(base).brighten(Math.random() - 0.5).hex())
+        const base = finalPalette[Math.floor(randomSeed * finalPalette.length)] || chroma.random().hex()
+        finalPalette.push(chroma(base).set('hsl.h', '+ ' + (Math.random() * 60 - 30)).hex())
       }
+      finalPalette = [...new Set(finalPalette.slice(0, numColors))]  // 去除重複
 
       // 改進主題應用：更精細調整以匹配不同顏色搭配
       if (theme === 'warm') {
         finalPalette = finalPalette.map(color => {
           let h = chroma(color).get('hsl.h') % 360
-          h = (h < 60 || h > 300) ? h : (h + 30) % 360  // 偏向暖色調
-          return chroma(color).set('hsl.h', h).brighten(0.6).hex()
+          h = (h < 60 || h > 300) ? h : (h + 30 + (randomSeed * 20 - 10)) % 360
+          return chroma(color).set('hsl.h', h).brighten(0.6 + randomSeed * 0.2).hex()
         })
       } else if (theme === 'cool') {
         finalPalette = finalPalette.map(color => {
           let h = chroma(color).get('hsl.h') % 360
-          h = (h > 180 && h < 300) ? h : (h - 60 + 360) % 360  // 偏向冷色調
-          return chroma(color).set('hsl.h', h).desaturate(0.4).hex()
+          h = (h > 180 && h < 300) ? h : (h - 60 + (randomSeed * 20 - 10) + 360) % 360
+          return chroma(color).set('hsl.h', h).desaturate(0.4 + randomSeed * 0.2).hex()
         })
-      } else if (theme === 'pastel') {  // 新主題：生成柔和粉彩色，增加精緻感
-        finalPalette = finalPalette.map(color => chroma(color).desaturate(1).brighten(1.5).hex())
-      } else if (theme === 'dark') {  // 新主題：生成深色方案，適合現代設計
-        finalPalette = finalPalette.map(color => chroma(color).darken(1.2).desaturate(0.5).hex())
+      } else if (theme === 'pastel') {
+        finalPalette = finalPalette.map(color => chroma(color).desaturate(1 + randomSeed * 0.5).brighten(1.5 + randomSeed * 0.3).hex())
+      } else if (theme === 'dark') {
+        finalPalette = finalPalette.map(color => chroma(color).darken(1.2 + randomSeed * 0.3).desaturate(0.5 + randomSeed * 0.2).hex())
       }
 
-      // 排序顏色以創建更視覺吸引的漸變效果（從亮到暗）
-      finalPalette.sort((a, b) => chroma(b).luminance() - chroma(a).luminance())
+      // 排序顏色以創建更視覺吸引的漸變效果（從亮到暗），但添加小隨機以變化
+      finalPalette.sort((a, b) => chroma(b).luminance() - chroma(a).luminance() + (randomSeed - 0.5) * 0.1)
 
       setPalette(finalPalette)
       toast.success('配色生成完成！現在顏色更多樣且和諧。')
@@ -197,7 +181,7 @@ export default function HomePage() {
   }
 
   const regeneratePalette = () => {
-    generatePalette()  // 新功能：一鍵重新生成以增加變化
+    generatePalette(Math.random())  // 傳入隨機種子以生成不同結果
   }
 
   return (
@@ -307,7 +291,7 @@ export default function HomePage() {
                   <option value={16}>16 種顏色</option>
                 </select>
                 <button
-                  onClick={generatePalette}
+                  onClick={() => generatePalette()}
                   disabled={processing}
                   className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:from-gray-600 disabled:to-gray-600 text-white font-medium py-3 px-6 rounded-lg transition-colors flex items-center justify-center"
                 >
@@ -372,22 +356,22 @@ export default function HomePage() {
                   </div>
                 )}
                 
-                <div className="flex gap-4">
-                  <button onClick={downloadPalette} className="flex-1 bg-green-600 hover:bg-green-700 text-white py-3 rounded-lg flex items-center justify-center">
+                <div className="flex gap-4 flex-wrap">
+                  <button onClick={downloadPalette} className="flex-1 min-w-[150px] bg-green-600 hover:bg-green-700 text-white py-3 rounded-lg flex items-center justify-center">
                     <Download className="w-5 h-5 mr-2" /> 導出 PNG
                   </button>
-                  <button onClick={exportCSS} className="flex-1 bg-purple-600 hover:bg-purple-700 text-white py-3 rounded-lg flex items-center justify-center">
+                  <button onClick={exportCSS} className="flex-1 min-w-[150px] bg-purple-600 hover:bg-purple-700 text-white py-3 rounded-lg flex items-center justify-center">
                     <Copy className="w-5 h-5 mr-2" /> 導出 CSS
                   </button>
-                  <button onClick={sharePalette} className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg flex items-center justify-center">
+                  <button onClick={sharePalette} className="flex-1 min-w-[150px] bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg flex items-center justify-center">
                     <RefreshCw className="w-5 h-5 mr-2" /> 分享連結
                   </button>
-                  <button onClick={regeneratePalette} className="flex-1 bg-yellow-600 hover:bg-yellow-700 text-white py-3 rounded-lg flex items-center justify-center">
+                  <button onClick={regeneratePalette} className="flex-1 min-w-[150px] bg-yellow-600 hover:bg-yellow-700 text-white py-3 rounded-lg flex items-center justify-center">
                     <RefreshCw className="w-5 h-5 mr-2" /> 重新生成
                   </button>
                 </div>
 
-                <p className="text-white/80 text-sm">靈感提示: 這些顏色適合 {mode === 'complementary' ? '高對比設計' : mode === 'analogous' ? '柔和界面' : mode === 'triadic' ? '動態配色' : mode === 'morandi' ? '精緻柔和設計' : mode === 'vibrant' ? '活力亮色應用' : mode === 'muted' ? '低調優雅風格' : '平衡配色'}。嘗試不同主題以獲得更多變化。</p>
+                <p className="text-white/80 text-sm">靈感提示: 這些顏色適合 {mode === 'complementary' ? '高對比設計' : mode === 'analogous' ? '柔和界面' : mode === 'triadic' ? '動態配色' : mode === 'morandi' ? '精緻柔和設計' : mode === 'vibrant' ? '活力亮色應用' : mode === 'muted' ? '低調優雅風格' : '平衡配色'}。嘗試不同主題以獲得更多變化。重新生成將產生略微不同的變體。</p>
               </motion.div>
             ) : (
               <div className="text-center py-12">

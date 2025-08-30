@@ -1,74 +1,36 @@
-/* src/index.css */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
-  /* --- 亮色主題 (預設) --- */
-  :root {
-    --background: 0 0% 100%; /* 背景色: 純白 */
-    --foreground: 222.2 84% 4.9%; /* 前景色/主要文字: 深藍黑 */
+:root {
+--radius: 0.5rem;
+--sidebar-background: 0 0% 98%;
+--sidebar-foreground: 240 5.3% 26.1%;
+--sidebar-primary: 240 5.9% 10%;
+--sidebar-primary-foreground: 0 0% 98%;
+--sidebar-accent: 240 4.8% 95.9%;
+--sidebar-accent-foreground: 240 5.9% 10%;
+--sidebar-border: 220 13% 91%;
+--sidebar-ring: 217.2 91.2% 59.8%
+}
 
-    --card: 0 0% 100%; /* 卡片背景 */
-    --card-foreground: 222.2 84% 4.9%; /* 卡片文字 */
-
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-
-    --primary: 221.2 83.2% 53.3%; /* 主色調: 鮮明的藍色 */
-    --primary-foreground: 210 40% 98%; /* 主色調上的文字: 接近白色 */
-
-    --secondary: 210 40% 96.1%; /* 次要顏色: 非常淺的灰色 */
-    --secondary-foreground: 222.2 47.4% 11.2%;
-
-    --muted: 210 40% 96.1%; /* 柔和色: 用於提示文字等 */
-    --muted-foreground: 215.4 16.3% 46.9%; /* 柔和色上的文字 */
-
-    --accent: 210 40% 96.1%; /* 強調色: 背景懸停等 */
-    --accent-foreground: 222.2 47.4% 11.2%;
-
-    --border: 214.3 31.8% 91.4%; /* 邊框顏色 */
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
-
-    --radius: 0.5rem;
-  }
-
-  /* --- 深色主題 --- */
-  .dark {
-    /* 這裡可以沿用您原有的深色主題變數，或更新為新的命名 */
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 217.2 91.2% 59.8%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
-  }
-
-  /* --- 將主題顏色應用到基礎元素 --- */
-  body {
-    background-color: hsl(var(--background));
-    color: hsl(var(--foreground));
-    font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
-    line-height: 1.5;
-  }
+.dark {
+--sidebar-background: 240 5.9% 10%;
+--sidebar-foreground: 240 4.8% 95.9%;
+--sidebar-primary: 224.3 76.3% 48%;
+--sidebar-primary-foreground: 0 0% 100%;
+--sidebar-accent: 240 3.7% 15.9%;
+--sidebar-accent-foreground: 240 4.8% 95.9%;
+--sidebar-border: 240 3.7% 15.9%;
+--sidebar-ring: 217.2 91.2% 59.8%
+}
 }
 
 img {
-  object-position: top;
+object-position: top;
 }
 
 .fixed {
-  position: fixed;
+position: fixed;
 }

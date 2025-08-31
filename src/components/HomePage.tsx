@@ -87,9 +87,10 @@ export default function HomePage() {
           }
         }
       }
-
+      
+      const randomSeed = Math.random();
       let initialPalette = distinctPalette
-        .sort(() => 0.5 - randomSeed * Math.random())
+        .sort(() => 0.5 - randomSeed)
         .slice(0, numColors)
 
       while (initialPalette.length < numColors) {
@@ -207,80 +208,88 @@ export default function HomePage() {
         </div>
       </div>
       <div className="max-w-6xl mx-auto">
-        <div className="grid lg:grid-cols-2 gap-8">
-          {/* 【修正確認】: 將 rounded-2xl 確保為正確拼寫 */}
-          <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-8 border border-white/20">
-            <h2 className="text-2xl font-bold text-white mb-6 flex items-center"><Upload className="w-6 h-6 mr-2" />上傳圖片</h2>
-            <div
-              {...getRootProps()}
-              className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all ${isDragActive ? 'border-blue-400 bg-blue-400/10' : 'border-white/30 hover:border-white/50 hover:bg-white/5'}`}>
-              <input {...getInputProps()} />
-              {previewUrl ? (
-                <div className="space-y-4">
-                  <img src={previewUrl} alt="Preview" className="max-w-full max-h-64 mx-auto rounded-lg shadow-lg" />
-                  <div className="text-white/80"><p className="font-medium">{selectedFile?.name}</p><p className="text-sm">{(selectedFile?.size! / 1024 / 1024).toFixed(2)} MB</p></div>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  <ImageIcon className="w-12 h-12 text-white/40 mx-auto" />
-                  <div className="text-white/80"><p className="text-lg font-medium mb-2">{isDragActive ? '放開檔案以上傳' : '點擊或拖拽圖片到此處'}</p><p className="text-sm text-white/60">支援 JPEG、PNG、WebP 格式，最大 5MB</p></div>
+        {/* ==================== 佈局修正開始 ==================== */}
+        {/* 步驟 1: 新增一個父層容器，由它來負責毛玻璃效果 */}
+        <div className="bg-white/10 backdrop-blur-sm rounded-2xl border border-white/20 p-8">
+          <div className="grid lg:grid-cols-2 gap-8">
+            
+            {/* 步驟 2: 移除原上傳區塊的背景和邊框等樣式，讓它變成透明的佈局容器 */}
+            <div>
+              <h2 className="text-2xl font-bold text-white mb-6 flex items-center"><Upload className="w-6 h-6 mr-2" />上傳圖片</h2>
+              <div
+                {...getRootProps()}
+                className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all ${isDragActive ? 'border-blue-400 bg-blue-400/10' : 'border-white/30 hover:border-white/50 hover:bg-white/5'}`}>
+                <input {...getInputProps()} />
+                {previewUrl ? (
+                  <div className="space-y-4">
+                    <img src={previewUrl} alt="Preview" className="max-w-full max-h-64 mx-auto rounded-lg shadow-lg" />
+                    <div className="text-white/80"><p className="font-medium">{selectedFile?.name}</p><p className="text-sm">{(selectedFile?.size! / 1024 / 1024).toFixed(2)} MB</p></div>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <ImageIcon className="w-12 h-12 text-white/40 mx-auto" />
+                    <div className="text-white/80"><p className="text-lg font-medium mb-2">{isDragActive ? '放開檔案以上傳' : '點擊或拖拽圖片到此處'}</p><p className="text-sm text-white/60">支援 JPEG、PNG、WebP 格式，最大 5MB</p></div>
+                  </div>
+                )}
+              </div>
+              {previewUrl && (
+                <div className="mt-6 space-y-4">
+                  <select value={mode} onChange={(e) => setMode(e.target.value as any)} className="w-full bg-black/20 border border-white/20 rounded-lg px-4 py-2 text-white"><option value="standard">標準模式</option><option value="complementary">互補模式</option><option value="analogous">類似模式</option><option value="triadic">三色模式</option><option value="morandi">莫蘭迪</option><option value="vibrant">鮮豔模式</option><option value="muted">柔和模式</option></select>
+                  <select value={theme} onChange={(e) => setTheme(e.target.value as any)} className="w-full bg-black/20 border border-white/20 rounded-lg px-4 py-2 text-white"><option value="neutral">中性主題</option><option value="warm">暖色主題</option><option value="cool">冷色主題</option><option value="pastel">粉彩主題</option><option value="dark">深色主題</option></select>
+                  <select value={numColors} onChange={(e) => setNumColors(parseInt(e.target.value) as any)} className="w-full bg-black/20 border border-white/20 rounded-lg px-4 py-2 text-white"><option value={4}>4 種顏色</option><option value={8}>8 種顏色</option><option value={12}>12 種顏色</option><option value={16}>16 種顏色</option></select>
+                  <button onClick={() => generatePalette()} disabled={processing} className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:from-gray-600 disabled:to-gray-600 text-white font-medium py-3 px-6 rounded-lg transition-colors flex items-center justify-center">
+                    {processing ? (<><Loader2 className="w-5 h-5 mr-2 animate-spin" />生成中...</>) : (<><Palette className="w-5 h-5 mr-2" />生成配色方案</>)}
+                  </button>
                 </div>
               )}
             </div>
-            {previewUrl && (
-              <div className="mt-6 space-y-4">
-                <select value={mode} onChange={(e) => setMode(e.target.value as any)} className="w-full bg-black/20 border border-white/20 rounded-lg px-4 py-2 text-white"><option value="standard">標準模式</option><option value="complementary">互補模式</option><option value="analogous">類似模式</option><option value="triadic">三色模式</option><option value="morandi">莫蘭迪</option><option value="vibrant">鮮豔模式</option><option value="muted">柔和模式</option></select>
-                <select value={theme} onChange={(e) => setTheme(e.target.value as any)} className="w-full bg-black/20 border border-white/20 rounded-lg px-4 py-2 text-white"><option value="neutral">中性主題</option><option value="warm">暖色主題</option><option value="cool">冷色主題</option><option value="pastel">粉彩主題</option><option value="dark">深色主題</option></select>
-                <select value={numColors} onChange={(e) => setNumColors(parseInt(e.target.value) as any)} className="w-full bg-black/20 border border-white/20 rounded-lg px-4 py-2 text-white"><option value={4}>4 種顏色</option><option value={8}>8 種顏色</option><option value={12}>12 種顏色</option><option value={16}>16 種顏色</option></select>
-                <button onClick={() => generatePalette()} disabled={processing} className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:from-gray-600 disabled:to-gray-600 text-white font-medium py-3 px-6 rounded-lg transition-colors flex items-center justify-center">
-                  {processing ? (<><Loader2 className="w-5 h-5 mr-2 animate-spin" />生成中...</>) : (<><Palette className="w-5 h-5 mr-2" />生成配色方案</>)}
-                </button>
-              </div>
-            )}
-          </div>
-          {/* 【修正確認】: 將 rounded-2xl 確保為正確拼寫 */}
-          <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-8 border border-white/20">
-            <h2 className="text-2xl font-bold text-white mb-6 flex items-center"><PaletteIcon className="w-6 h-6 mr-2" />配色結果</h2>
-            {palette.length > 0 ? (
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
-                <div className={`grid gap-2 sm:gap-4 grid-cols-4 ${numColors > 8 ? 'md:grid-cols-8' : 'md:grid-cols-4'}`}>
-                  {palette.map((color, index) => (
-                    <motion.div key={`${color}-${index}`} initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: index * 0.05 }} style={{ backgroundColor: color }} className="h-24 rounded-lg flex flex-col items-center justify-center font-mono text-sm cursor-pointer relative group" onClick={() => copyColor(color)}>
-                      <span className="mb-1 p-1 bg-black/20 rounded-sm" style={{ color: chroma.contrast(color, 'white') > 4.5 ? 'white' : 'black' }}>{color}</span>
-                      <Copy className="w-4 h-4 mt-1" style={{ color: chroma.contrast(color, 'white') > 4.5 ? 'white' : 'black' }} />
-                      <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button className="p-1 bg-black/40 rounded-full text-white hover:bg-black/60" onClick={(e) => { e.stopPropagation(); setEditingColor({ index, brightness: 0, saturation: 0, hue: 0 }); }}><Sliders className="w-4 h-4" /></button>
-                      </div>
-                    </motion.div>
-                  ))}
-                </div>
-                {editingColor !== null && (
-                  <div className="p-4 bg-gray-900 rounded-lg">
-                    <h3 className="text-white mb-4 flex items-center gap-2">編輯顏色: <span className="font-mono p-1 rounded-md" style={{ backgroundColor: palette[editingColor.index], color: chroma.contrast(palette[editingColor.index], 'white') > 2 ? 'white' : 'black' }}>{palette[editingColor.index]}</span></h3>
-                    <div className="space-y-4 text-white text-sm">
-                      <div><label>亮度</label><input type="range" min="-1.5" max="1.5" step="0.1" defaultValue="0" onChange={(e) => editColor(editingColor.index, 'brightness', parseFloat(e.target.value) - editingColor.brightness)} className="w-full" /></div>
-                      <div><label>飽和度</label><input type="range" min="-2" max="2" step="0.1" defaultValue="0" onChange={(e) => editColor(editingColor.index, 'saturation', parseFloat(e.target.value) - editingColor.saturation)} className="w-full" /></div>
-                      <div><label>色相</label><input type="range" min="-180" max="180" step="1" defaultValue="0" onChange={(e) => editColor(editingColor.index, 'hue', parseFloat(e.target.value) - editingColor.hue)} className="w-full" /></div>
-                    </div>
-                    <button onClick={() => setEditingColor(null)} className="mt-4 bg-red-600 hover:bg-red-700 py-1 px-3 rounded text-white text-sm">完成</button>
+            
+            {/* 步驟 3: 同樣移除原結果區塊的背景和邊框等樣式 */}
+            <div>
+              <h2 className="text-2xl font-bold text-white mb-6 flex items-center"><PaletteIcon className="w-6 h-6 mr-2" />配色結果</h2>
+              {palette.length > 0 ? (
+                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
+                  <div className={`grid gap-2 sm:gap-4 grid-cols-4 ${numColors > 8 ? 'md:grid-cols-8' : 'md:grid-cols-4'}`}>
+                    {palette.map((color, index) => (
+                      <motion.div key={`${color}-${index}`} initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: index * 0.05 }} style={{ backgroundColor: color }} className="h-24 rounded-lg flex flex-col items-center justify-center font-mono text-sm cursor-pointer relative group" onClick={() => copyColor(color)}>
+                        <span className="mb-1 p-1 bg-black/20 rounded-sm" style={{ color: chroma.contrast(color, 'white') > 4.5 ? 'white' : 'black' }}>{color}</span>
+                        <Copy className="w-4 h-4 mt-1" style={{ color: chroma.contrast(color, 'white') > 4.5 ? 'white' : 'black' }} />
+                        <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button className="p-1 bg-black/40 rounded-full text-white hover:bg-black/60" onClick={(e) => { e.stopPropagation(); setEditingColor({ index, brightness: 0, saturation: 0, hue: 0 }); }}><Sliders className="w-4 h-4" /></button>
+                        </div>
+                      </motion.div>
+                    ))}
                   </div>
-                )}
-                <div className="flex gap-4 flex-wrap">
-                  <button onClick={downloadPalette} className="flex-1 min-w-[150px] bg-green-600 hover:bg-green-700 text-white py-3 rounded-lg flex items-center justify-center"><Download className="w-5 h-5 mr-2" /> 導出 PNG</button>
-                  <button onClick={exportCSS} className="flex-1 min-w-[150px] bg-purple-600 hover:bg-purple-700 text-white py-3 rounded-lg flex items-center justify-center"><Copy className="w-5 h-5 mr-2" /> 導出 CSS</button>
-                  <button onClick={regeneratePalette} className="flex-1 min-w-[150px] bg-yellow-600 hover:bg-yellow-700 text-white py-3 rounded-lg flex items-center justify-center"><RefreshCw className="w-5 h-5 mr-2" /> 重新生成</button>
-                </div>
-                
-                <TemplatePreview palette={palette} />
-                <AccessibilityChecker palette={palette} />
-                <GradientGenerator palette={palette} />
+                  {editingColor !== null && (
+                    <div className="p-4 bg-gray-900 rounded-lg">
+                      <h3 className="text-white mb-4 flex items-center gap-2">編輯顏色: <span className="font-mono p-1 rounded-md" style={{ backgroundColor: palette[editingColor.index], color: chroma.contrast(palette[editingColor.index], 'white') > 2 ? 'white' : 'black' }}>{palette[editingColor.index]}</span></h3>
+                      <div className="space-y-4 text-white text-sm">
+                        <div><label>亮度</label><input type="range" min="-1.5" max="1.5" step="0.1" defaultValue="0" onChange={(e) => editColor(editingColor.index, 'brightness', parseFloat(e.target.value) - editingColor.brightness)} className="w-full" /></div>
+                        <div><label>飽和度</label><input type="range" min="-2" max="2" step="0.1" defaultValue="0" onChange={(e) => editColor(editingColor.index, 'saturation', parseFloat(e.target.value) - editingColor.saturation)} className="w-full" /></div>
+                        <div><label>色相</label><input type="range" min="-180" max="180" step="1" defaultValue="0" onChange={(e) => editColor(editingColor.index, 'hue', parseFloat(e.target.value) - editingColor.hue)} className="w-full" /></div>
+                      </div>
+                      <button onClick={() => setEditingColor(null)} className="mt-4 bg-red-600 hover:bg-red-700 py-1 px-3 rounded text-white text-sm">完成</button>
+                    </div>
+                  )}
+                  <div className="flex gap-4 flex-wrap">
+                    <button onClick={downloadPalette} className="flex-1 min-w-[150px] bg-green-600 hover:bg-green-700 text-white py-3 rounded-lg flex items-center justify-center"><Download className="w-5 h-5 mr-2" /> 導出 PNG</button>
+                    <button onClick={exportCSS} className="flex-1 min-w-[150px] bg-purple-600 hover:bg-purple-700 text-white py-3 rounded-lg flex items-center justify-center"><Copy className="w-5 h-5 mr-2" /> 導出 CSS</button>
+                    <button onClick={regeneratePalette} className="flex-1 min-w-[150px] bg-yellow-600 hover:bg-yellow-700 text-white py-3 rounded-lg flex items-center justify-center"><RefreshCw className="w-5 h-5 mr-2" /> 重新生成</button>
+                  </div>
+                  
+                  <TemplatePreview palette={palette} />
+                  <AccessibilityChecker palette={palette} />
+                  <GradientGenerator palette={palette} />
 
-              </motion.div>
-            ) : (
-              <div className="text-center py-12"><div className="w-16 h-16 bg-white/10 rounded-full flex items-center justify-center mx-auto mb-4"><Palette className="w-8 h-8 text-white/40" /></div><p className="text-white/60">上傳圖片，見證專業級色彩提取</p></div>
-            )}
+                </motion.div>
+              ) : (
+                <div className="text-center py-12"><div className="w-16 h-16 bg-white/10 rounded-full flex items-center justify-center mx-auto mb-4"><Palette className="w-8 h-8 text-white/40" /></div><p className="text-white/60">上傳圖片，見證專業級色彩提取</p></div>
+              )}
+            </div>
+
           </div>
         </div>
+        {/* ==================== 佈局修正結束 ==================== */}
       </div>
     </div>
   )

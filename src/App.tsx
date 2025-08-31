@@ -8,8 +8,10 @@ import HomePage from '@/components/HomePage'
 
 function AppContent() {
   return (
-    // 【還原】: 將深色漸層背景加回來
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900">
+    // 【最終修正】：在這個最外層的 div 上，加入 overflow-hidden 和 transform-gpu
+    // overflow-hidden: 確保任何內容都不會意外溢出容器。
+    // transform-gpu: 強制將整個內容區塊提升到獨立的 GPU 渲染層，徹底隔離與 fixed 元素的渲染衝突。
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900 overflow-hidden transform-gpu">
       <Navbar />
       <main className="container mx-auto px-4 py-8">
         <Routes>
@@ -17,7 +19,6 @@ function AppContent() {
         </Routes>
       </main>
       
-      {/* 【還原】: Toaster 也使用寫死的深色樣式 */}
       <Toaster 
         position="top-right"
         toastOptions={{
@@ -30,7 +31,6 @@ function AppContent() {
         }}
       />
       
-      {/* 【還原】: 廣告區塊使用寫死的深色樣式 */}
       <div className="fixed right-4 top-1/2 transform -translate-y-1/2 w-40 h-96 bg-gray-800/90 backdrop-blur-sm border border-gray-700 rounded-lg z-30 hidden lg:flex">
         <div className="h-full flex items-center justify-center text-gray-400 text-sm text-center px-2">
           廣告區域<br />側邊欄<br />(160x600)

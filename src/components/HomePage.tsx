@@ -10,7 +10,6 @@ import quantize from 'quantize'
 
 import TemplatePreview from './TemplatePreview'
 import AccessibilityChecker from './AccessibilityChecker'
-// 【第 1 處修改：在 import 區塊加入這行】
 import GradientGenerator from './GradientGenerator'
 
 export default function HomePage() {
@@ -127,7 +126,6 @@ export default function HomePage() {
         finalPalette = finalPalette.map(color => chroma(color).darken(1.2).desaturate(0.5).hex())
       }
       
-      // 【重要】: 按亮度排序，這對 TemplatePreview 智能選色至關重要
       finalPalette.sort((a, b) => chroma(a).luminance() - chroma(b).luminance())
       
       setPalette(finalPalette)
@@ -210,6 +208,7 @@ export default function HomePage() {
       </div>
       <div className="max-w-6xl mx-auto">
         <div className="grid lg:grid-cols-2 gap-8">
+          {/* 【修正確認】: 將 rounded-2xl 確保為正確拼寫 */}
           <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-8 border border-white/20">
             <h2 className="text-2xl font-bold text-white mb-6 flex items-center"><Upload className="w-6 h-6 mr-2" />上傳圖片</h2>
             <div
@@ -239,6 +238,7 @@ export default function HomePage() {
               </div>
             )}
           </div>
+          {/* 【修正確認】: 將 rounded-2xl 確保為正確拼寫 */}
           <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-8 border border-white/20">
             <h2 className="text-2xl font-bold text-white mb-6 flex items-center"><PaletteIcon className="w-6 h-6 mr-2" />配色結果</h2>
             {palette.length > 0 ? (
@@ -271,8 +271,6 @@ export default function HomePage() {
                   <button onClick={regeneratePalette} className="flex-1 min-w-[150px] bg-yellow-600 hover:bg-yellow-700 text-white py-3 rounded-lg flex items-center justify-center"><RefreshCw className="w-5 h-5 mr-2" /> 重新生成</button>
                 </div>
                 
-                {/* 【第 2 處修改：在 ACC Checker 下方加入新元件】 */}
-                {/* 我們把功能按順序堆疊起來 */}
                 <TemplatePreview palette={palette} />
                 <AccessibilityChecker palette={palette} />
                 <GradientGenerator palette={palette} />

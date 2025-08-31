@@ -8,12 +8,12 @@ import HomePage from '@/components/HomePage'
 
 function AppContent() {
   return (
-    // 【最終修正】：在這個最外層的 div 上，加入 overflow-hidden 和 transform-gpu
-    // overflow-hidden: 確保任何內容都不會意外溢出容器。
-    // transform-gpu: 強制將整個內容區塊提升到獨立的 GPU 渲染層，徹底隔離與 fixed 元素的渲染衝突。
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900 overflow-hidden transform-gpu">
       <Navbar />
-      <main className="container mx-auto px-4 py-8">
+      
+      {/* 【最終修正 1/2】：移除這裡的 container 和 padding class */}
+      {/* 讓 main 標籤只作為一個簡單的區塊，把佈局控制權交給 HomePage */}
+      <main>
         <Routes>
           <Route path="/" element={<HomePage />} />
         </Routes>

@@ -72,10 +72,10 @@ export default function HomePage() {
         pixels.push([r, g, b])
       }
 
-      const colorMap = quantize(pixels, 64)
+      const colorMap = quantize(pixels, 64) 
       let basePalette = colorMap ? colorMap.palette().map((rgb: [number, number, number]) => chroma(rgb).hex()) : [];
 
-      const MIN_DISTANCE = 20
+      const MIN_DISTANCE = 20 
       const distinctPalette: string[] = []
       if (basePalette.length > 0) {
         distinctPalette.push(basePalette[0])
@@ -206,9 +206,10 @@ export default function HomePage() {
           <div className="text-green-400/80 text-sm mt-1">立即上傳圖片，體驗專業級配色</div>
         </div>
       </div>
-      <div className="max-w-6xl mx-auto">
-        {/* 【最終修正】：在 Grid 容器上添加 transform-gpu */}
-        <div className="grid lg:grid-cols-2 gap-8 transform-gpu">
+      
+      {/* 【最終修正】：在這個包裹所有主要內容的容器上，添加 w-full */}
+      <div className="w-full max-w-6xl mx-auto">
+        <div className="grid lg:grid-cols-2 gap-8">
           <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-8 border border-white/20">
             <h2 className="text-2xl font-bold text-white mb-6 flex items-center"><Upload className="w-6 h-6 mr-2" />上傳圖片</h2>
             <div

@@ -193,9 +193,9 @@ export default function HomePage() {
   const regeneratePalette = () => generatePalette(Math.random())
 
   return (
-    // 【最終修正 2/2】：移除這裡的 min-h-screen 和 pb-24，並簡化容器
-    // HomePage 只負責自己的內容佈局，不再關心整個螢幕的高度
-    <div className="w-full max-w-6xl mx-auto">
+    // 【最終修正 2/2】：將所有佈局控制 class 統一到這裡
+    // HomePage 現在完全自我控制佈局，確保在任何螢幕上都有安全的邊距
+    <div className="container mx-auto max-w-6xl pb-24">
       <div className="text-center mb-12">
         <h1 className="text-5xl font-bold text-white mb-6 bg-gradient-to-r from-blue-400 to-purple-600 bg-clip-text text-transparent">
           AI 顏色配色生成器

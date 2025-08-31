@@ -8,8 +8,9 @@ import chroma from 'chroma-js'
 import { motion } from 'framer-motion'
 import quantize from 'quantize'
 
-// 【第 1 處修改：在最頂部加入這行 import】
 import TemplatePreview from './TemplatePreview'
+// 【第 1 處修改：在 import 區塊加入這行】
+import AccessibilityChecker from './AccessibilityChecker'
 
 export default function HomePage() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
@@ -269,8 +270,11 @@ export default function HomePage() {
                   <button onClick={regeneratePalette} className="flex-1 min-w-[150px] bg-yellow-600 hover:bg-yellow-700 text-white py-3 rounded-lg flex items-center justify-center"><RefreshCw className="w-5 h-5 mr-2" /> 重新生成</button>
                 </div>
                 
-                {/* 【第 2 處修改：在按鈕組下方加入這行 UI 預覽元件】 */}
+                {/* 【加入這行 UI 預覽元件】 */}
                 <TemplatePreview palette={palette} />
+
+                {/* 【第 2 處修改：在 UI 預覽下方加入這行新元件】 */}
+                <AccessibilityChecker palette={palette} />
 
               </motion.div>
             ) : (

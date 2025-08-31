@@ -9,8 +9,9 @@ import { motion } from 'framer-motion'
 import quantize from 'quantize'
 
 import TemplatePreview from './TemplatePreview'
-// 【第 1 處修改：在 import 區塊加入這行】
 import AccessibilityChecker from './AccessibilityChecker'
+// 【第 1 處修改：在 import 區塊加入這行】
+import GradientGenerator from './GradientGenerator'
 
 export default function HomePage() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
@@ -270,11 +271,11 @@ export default function HomePage() {
                   <button onClick={regeneratePalette} className="flex-1 min-w-[150px] bg-yellow-600 hover:bg-yellow-700 text-white py-3 rounded-lg flex items-center justify-center"><RefreshCw className="w-5 h-5 mr-2" /> 重新生成</button>
                 </div>
                 
-                {/* 【加入這行 UI 預覽元件】 */}
+                {/* 【第 2 處修改：在 ACC Checker 下方加入新元件】 */}
+                {/* 我們把功能按順序堆疊起來 */}
                 <TemplatePreview palette={palette} />
-
-                {/* 【第 2 處修改：在 UI 預覽下方加入這行新元件】 */}
                 <AccessibilityChecker palette={palette} />
+                <GradientGenerator palette={palette} />
 
               </motion.div>
             ) : (

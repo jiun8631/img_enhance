@@ -72,10 +72,10 @@ export default function HomePage() {
         pixels.push([r, g, b])
       }
 
-      const colorMap = quantize(pixels, 64) 
+      const colorMap = quantize(pixels, 64)
       let basePalette = colorMap ? colorMap.palette().map((rgb: [number, number, number]) => chroma(rgb).hex()) : [];
 
-      const MIN_DISTANCE = 20 
+      const MIN_DISTANCE = 20
       const distinctPalette: string[] = []
       if (basePalette.length > 0) {
         distinctPalette.push(basePalette[0])
@@ -207,11 +207,9 @@ export default function HomePage() {
         </div>
       </div>
       <div className="max-w-6xl mx-auto">
-        {/* 恢復原有的 grid 佈局 */}
-        <div className="grid lg:grid-cols-2 gap-8">
-          
-          {/* 【第 1 處修改：加入 transform-gpu】 */}
-          <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-8 border border-white/20 transform-gpu">
+        {/* 【最終修正】：在 Grid 容器上添加 transform-gpu */}
+        <div className="grid lg:grid-cols-2 gap-8 transform-gpu">
+          <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-8 border border-white/20">
             <h2 className="text-2xl font-bold text-white mb-6 flex items-center"><Upload className="w-6 h-6 mr-2" />上傳圖片</h2>
             <div
               {...getRootProps()}
@@ -240,9 +238,7 @@ export default function HomePage() {
               </div>
             )}
           </div>
-          
-          {/* 【第 2 處修改：加入 transform-gpu】 */}
-          <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-8 border border-white/20 transform-gpu">
+          <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-8 border border-white/20">
             <h2 className="text-2xl font-bold text-white mb-6 flex items-center"><PaletteIcon className="w-6 h-6 mr-2" />配色結果</h2>
             {palette.length > 0 ? (
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">

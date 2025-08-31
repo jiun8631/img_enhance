@@ -195,7 +195,7 @@ export default function HomePage() {
   return (
     // 【最終修正 2/2】：將所有佈局控制 class 統一到這裡
     // HomePage 現在完全自我控制佈局，確保在任何螢幕上都有安全的邊距
-    <div className="container mx-auto max-w-6xl pb-24">
+    <div className="container mx-auto max-w-6xl py-8">
       <div className="text-center mb-12">
         <h1 className="text-5xl font-bold text-white mb-6 bg-gradient-to-r from-blue-400 to-purple-600 bg-clip-text text-transparent">
           AI 顏色配色生成器
@@ -230,7 +230,7 @@ export default function HomePage() {
           {previewUrl && (
             <div className="mt-6 space-y-4">
               <select value={mode} onChange={(e) => setMode(e.target.value as any)} className="w-full bg-black/20 border border-white/20 rounded-lg px-4 py-2 text-white"><option value="standard">標準模式</option><option value="complementary">互補模式</option><option value="analogous">類似模式</option><option value="triadic">三色模式</option><option value="morandi">莫蘭迪</option><option value="vibrant">鮮豔模式</option><option value="muted">柔和模式</option></select>
-              <select value={theme} onChange={(e) => setTheme(e.target.value as any)} className="w-full bg-black/20 border border-white/20 rounded-lg px-4 py-2 text-white"><option value="neutral">中性主題</option><option value="warm">暖色主題</option><option value="cool">冷色主題</option><option value="pastel">粉彩主題</option><option value="dark">深色主題</option></select>
+              <select value={theme} onChange={(e) => setMode(e.target.value as any)} className="w-full bg-black/20 border border-white/20 rounded-lg px-4 py-2 text-white"><option value="neutral">中性主題</option><option value="warm">暖色主題</option><option value="cool">冷色主題</option><option value="pastel">粉彩主題</option><option value="dark">深色主題</option></select>
               <select value={numColors} onChange={(e) => setNumColors(parseInt(e.target.value) as any)} className="w-full bg-black/20 border border-white/20 rounded-lg px-4 py-2 text-white"><option value={4}>4 種顏色</option><option value={8}>8 種顏色</option><option value={12}>12 種顏色</option><option value={16}>16 種顏色</option></select>
               <button onClick={() => generatePalette()} disabled={processing} className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:from-gray-600 disabled:to-gray-600 text-white font-medium py-3 px-6 rounded-lg transition-colors flex items-center justify-center">
                 {processing ? (<><Loader2 className="w-5 h-5 mr-2 animate-spin" />生成中...</>) : (<><Palette className="w-5 h-5 mr-2" />生成配色方案</>)}

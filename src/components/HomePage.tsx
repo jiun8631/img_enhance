@@ -6,8 +6,10 @@ import { Upload, Image as ImageIcon, Palette, Loader2, Copy, Download, RefreshCw
 import { toast } from 'react-hot-toast'
 import chroma from 'chroma-js'
 import { motion } from 'framer-motion'
-// 【新】: 引入色彩量化庫
 import quantize from 'quantize'
+
+// 【第 1 處修改：在最頂部加入這行 import】
+import TemplatePreview from './TemplatePreview'
 
 export default function HomePage() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
@@ -37,9 +39,6 @@ export default function HomePage() {
     multiple: false
   })
 
-  // ===================================================================================
-  // 【核心演算法升級 v3.0】: 引入專業色彩量化演算法 (Median Cut)
-  // ===================================================================================
   const generatePalette = (randomSeed = Math.random()) => {
     if (!previewUrl) {
       toast.error('請先選擇圖片')
@@ -52,7 +51,7 @@ export default function HomePage() {
     img.src = previewUrl
     img.onload = () => {
       const canvas = document.createElement('canvas')
-      const MAX_WIDTH = 100 // 保持較小的採樣尺寸以提高性能
+      const MAX_WIDTH = 100
       canvas.width = Math.min(MAX_WIDTH, img.width)
       canvas.height = Math.floor(img.height * canvas.width / img.width)
       const ctx = canvas.getContext('2d')
@@ -64,7 +63,6 @@ export default function HomePage() {
       ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
       const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height).data
 
-      // 步驟 1: 準備像素數據
       const pixels: [number, number, number][] = []
       for (let i = 0; i < imageData.length; i += 4) {
         const r = imageData[i], g = imageData[i + 1], b = imageData[i + 2]
@@ -73,11 +71,9 @@ export default function HomePage() {
         pixels.push([r, g, b])
       }
 
-      // 步驟 2: 執行色彩量化
       const colorMap = quantize(pixels, 64) 
       let basePalette = colorMap ? colorMap.palette().map((rgb: [number, number, number]) => chroma(rgb).hex()) : [];
 
-      // 步驟 3: 過濾掉視覺上過於相似的顏色
       const MIN_DISTANCE = 20 
       const distinctPalette: string[] = []
       if (basePalette.length > 0) {
@@ -91,7 +87,6 @@ export default function HomePage() {
         }
       }
 
-      // 步驟 4: 引入更強的隨機性並選取
       let initialPalette = distinctPalette
         .sort(() => 0.5 - randomSeed * Math.random())
         .slice(0, numColors)
@@ -103,7 +98,6 @@ export default function HomePage() {
           }
       }
 
-      // 步驟 5: 應用模式和主題
       let finalPalette = [...initialPalette]
       if (mode === 'complementary') {
         finalPalette = initialPalette.flatMap(color => [color, chroma(color).set('hsl.h', `+180`).hex()]).slice(0, numColors)
@@ -131,6 +125,7 @@ export default function HomePage() {
         finalPalette = finalPalette.map(color => chroma(color).darken(1.2).desaturate(0.5).hex())
       }
       
+      // 【重要】: 按亮度排序，這對 TemplatePreview 智能選色至關重要
       finalPalette.sort((a, b) => chroma(a).luminance() - chroma(b).luminance())
       
       setPalette(finalPalette)
@@ -273,6 +268,10 @@ export default function HomePage() {
                   <button onClick={exportCSS} className="flex-1 min-w-[150px] bg-purple-600 hover:bg-purple-700 text-white py-3 rounded-lg flex items-center justify-center"><Copy className="w-5 h-5 mr-2" /> 導出 CSS</button>
                   <button onClick={regeneratePalette} className="flex-1 min-w-[150px] bg-yellow-600 hover:bg-yellow-700 text-white py-3 rounded-lg flex items-center justify-center"><RefreshCw className="w-5 h-5 mr-2" /> 重新生成</button>
                 </div>
+                
+                {/* 【第 2 處修改：在按鈕組下方加入這行 UI 預覽元件】 */}
+                <TemplatePreview palette={palette} />
+
               </motion.div>
             ) : (
               <div className="text-center py-12"><div className="w-16 h-16 bg-white/10 rounded-full flex items-center justify-center mx-auto mb-4"><Palette className="w-8 h-8 text-white/40" /></div><p className="text-white/60">上傳圖片，見證專業級色彩提取</p></div>

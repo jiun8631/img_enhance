@@ -1,3 +1,4 @@
+// 【還原版本】：已移除漸層產生器，恢復到功能2完成後的穩定狀態
 // src/components/HomePage.tsx
 
 import React, { useState, useCallback } from 'react'
@@ -10,7 +11,6 @@ import quantize from 'quantize'
 
 import TemplatePreview from './TemplatePreview'
 import AccessibilityChecker from './AccessibilityChecker'
-import GradientGenerator from './GradientGenerator'
 
 export default function HomePage() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
@@ -193,8 +193,6 @@ export default function HomePage() {
   const regeneratePalette = () => generatePalette(Math.random())
 
   return (
-    // 【最終修正 2/2】：將所有佈局控制 class 統一到這裡
-    // HomePage 現在完全自我控制佈局，確保在任何螢幕上都有安全的邊距
     <div className="container mx-auto px-4 py-8 max-w-6xl">
       <div className="text-center mb-12">
         <h1 className="text-5xl font-bold text-white mb-6 bg-gradient-to-r from-blue-400 to-purple-600 bg-clip-text text-transparent">
@@ -272,7 +270,7 @@ export default function HomePage() {
               
               <TemplatePreview palette={palette} />
               <AccessibilityChecker palette={palette} />
-              <GradientGenerator palette={palette} />
+              {/* <GradientGenerator palette={palette} /> */} {/* 這行已被註解或刪除 */}
 
             </motion.div>
           ) : (

@@ -1,3 +1,4 @@
+// 【穩定版本】：這是解決黑色瑕疵和佈局裁切問題的穩定版本
 // src/App.tsx
 
 import React from 'react'
@@ -8,12 +9,9 @@ import HomePage from '@/components/HomePage'
 
 function AppContent() {
   return (
-    // 我們保留 overflow-hidden 和 transform-gpu 來解決黑色瑕疵
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900 overflow-hidden transform-gpu">
       <Navbar />
       
-      {/* 【最終修正 1/2】：移除這裡所有的佈局 class */}
-      {/* 讓 main 標籤只作為一個簡單的區塊，把所有佈局控制權完全交給 HomePage */}
       <main>
         <Routes>
           <Route path="/" element={<HomePage />} />

@@ -1,6 +1,6 @@
 // src/components/GradientGenerator.tsx
 
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback, useRef } from 'react' // 導入 useRef
 import { Copy, Layers, Download, Wand2 } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -18,14 +18,14 @@ type GradientConfig = {
 }
 
 const GradientGenerator: React.FC<GradientGeneratorProps> = ({ palette }) => {
-  const [gradientColors, setGradientColors] = useState<{ id: string; color: string; }[]>([])
-  const [gradientConfig, setGradientConfig] = useState<GradientConfig>({
-    type: 'linear',
-    angle: 90,
-    position: 'center',
-  })
   const [gradientCSS, setGradientCSS] = useState('')
   const [isMesh, setIsMesh] = useState(false)
+  const [gradientConfig, setGradientConfig] = useState<GradientConfig>({
+    type: 'linear', angle: 90, position: 'center'
+  })
+  
+  // 【關鍵】創建一個 ref 來指向我們的預覽 div
+  const previewRef = useRef<HTMLDivElement>(null);
 
   const generateRandomGradient = useCallback(() => {
     if (palette.length < 3) {
@@ -48,27 +48,19 @@ const GradientGenerator: React.FC<GradientGeneratorProps> = ({ palette }) => {
         const transparentColor = chroma(color).alpha(0).css();
         return `radial-gradient(circle at ${posX}% ${posY}%, ${color} 0%, ${transparentColor} ${size}%)`;
       });
-      
       const bgColor = chroma.average(selected, 'lch').hex();
-      
       setGradientConfig({ type: 'mesh', angle: 0, position: 'center' });
       setGradientCSS(`${meshLayers.join(', ')}, radial-gradient(circle, ${bgColor}, ${chroma(bgColor).darken(1).hex()})`);
-      setGradientColors(selected.map((c, i) => ({ id: `${c}-${i}`, color: c })));
       toast.success('網格魔法已施展！效果華麗！ ✨');
-
     } else {
       selected.sort((a,b) => chroma(a).luminance() - chroma(b).luminance());
-      
       const smoothPalette = chroma.scale(selected).mode('lch').colors(10);
-      
       const types: GradientConfig['type'][] = ['linear', 'radial', 'conic'];
       const randomType = types[Math.floor(Math.random() * types.length)];
       const randomAngle = Math.floor(Math.random() * 360);
       const positions = ['center', 'top', 'bottom', 'left', 'right'];
       const randomPosition = positions[Math.floor(Math.random() * positions.length)];
-      
       setGradientConfig({ type: randomType, angle: randomAngle, position: randomPosition });
-
       let css = '';
       const colorStops = smoothPalette.map((c, i) => `${c} ${i * (100 / 9)}%`).join(', ');
        switch (randomType) {
@@ -77,7 +69,6 @@ const GradientGenerator: React.FC<GradientGeneratorProps> = ({ palette }) => {
         case 'conic': css = `conic-gradient(from ${randomAngle}deg at ${randomPosition}, ${colorStops})`; break;
       }
       setGradientCSS(css);
-      setGradientColors(selected.map((c, i) => ({ id: `${c}-${i}`, color: c })));
       toast.success('絲滑漸層已生成！🎨');
     }
   }, [palette]);
@@ -87,60 +78,55 @@ const GradientGenerator: React.FC<GradientGeneratorProps> = ({ palette }) => {
       generateRandomGradient();
     } else {
       setGradientCSS('');
-      setGradientColors([]);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [palette]);
   
   const copyCSS = () => {
     if (!gradientCSS) return;
-    const fullCSS = `background: ${gradientCSS};`
-    navigator.clipboard.writeText(fullCSS)
-    toast.success('漸層 CSS 已複製！')
+    navigator.clipboard.writeText(`background: ${gradientCSS};`);
+    toast.success('漸層 CSS 已複製！');
   }
 
+  // 【釜底抽薪的終極修復方案】
   const handleDownloadImage = useCallback(() => {
+    // 直接檢查 ref 是否指向了一個元素
+    if (previewRef.current === null) {
+      toast.error('無法找到預覽元素');
+      return;
+    }
+    
     if (!gradientCSS) {
         toast.error('沒有可導出的漸層');
         return;
     }
+
     toast.loading('正在生成高清圖片...', { id: 'download-gradient' });
 
-    const node = document.createElement('div');
-    node.style.width = '1920px';
-    node.style.height = '1080px';
-    node.style.background = gradientCSS;
-    
-    // 【關鍵修復 1】使用新的隱藏方式，確保瀏覽器會渲染它
-    node.style.position = 'fixed';
-    node.style.top = '0';
-    node.style.left = '0';
-    node.style.zIndex = '-1';
-    node.style.opacity = '0';
-    node.style.pointerEvents = 'none';
-
-    document.body.appendChild(node);
-
-    // 【關鍵修復 2】增加一個微小的延遲，給瀏覽器時間繪製
-    setTimeout(() => {
-      toPng(node, { cacheBust: true, pixelRatio: 1 })
-        .then((dataUrl) => {
-          const link = document.createElement('a');
-          link.download = `gradient-${gradientConfig.type}.png`;
-          link.href = dataUrl;
-          link.click();
-          toast.success('1080p 漸層圖片下載成功！', { id: 'download-gradient' });
-        })
-        .catch((err) => {
-          toast.error('圖片生成失敗', { id: 'download-gradient' });
-          console.error('oops, something went wrong!', err);
-        })
-        .finally(() => {
-          // 確保在操作結束後移除節點
-          document.body.removeChild(node);
-        });
-    }, 50); // 50毫秒的延遲，對用戶無感，但對瀏覽器足夠
-
+    toPng(previewRef.current, { 
+      cacheBust: true, 
+      // 指定導出的尺寸
+      width: 1920,
+      height: 1080,
+      // 指定像素比為1，確保尺寸是 1920x1080 而不是 2x
+      pixelRatio: 1, 
+      // 在導出時，臨時覆蓋樣式，去掉圓角和邊框
+      style: {
+        borderRadius: '0',
+        border: 'none',
+      }
+    })
+      .then((dataUrl) => {
+        const link = document.createElement('a');
+        link.download = `gradient-${gradientConfig.type}.png`;
+        link.href = dataUrl;
+        link.click();
+        toast.success('1080p 漸層圖片下載成功！', { id: 'download-gradient' });
+      })
+      .catch((err) => {
+        toast.error('圖片生成失敗，請再試一次', { id: 'download-gradient' });
+        console.error('oops, something went wrong!', err);
+      });
   }, [gradientCSS, gradientConfig.type]);
 
   return (
@@ -156,7 +142,8 @@ const GradientGenerator: React.FC<GradientGeneratorProps> = ({ palette }) => {
         </button>
       </div>
       
-      <div className="w-full h-48 rounded-lg mb-4 border border-white/10 transition-all bg-gray-900" style={{ background: gradientCSS }} />
+      {/* 【關鍵】將 ref 綁定到這個 div */}
+      <div ref={previewRef} className="w-full h-48 rounded-lg mb-4 border border-white/10 transition-all bg-gray-900" style={{ background: gradientCSS }} />
       
       <AnimatePresence>
         {isMesh && (

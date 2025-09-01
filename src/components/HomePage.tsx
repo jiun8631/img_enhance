@@ -198,7 +198,7 @@ export default function HomePage() {
     <div className="min-h-screen pb-24">
       <div className="text-center mb-12">
         <h1 className="text-5xl font-bold text-white mb-6 bg-gradient-to-r from-blue-400 to-purple-600 bg-clip-text text-transparent">
-          一鍵實現專業級配色
+          一鍵專業級配色
         </h1>
         <p className="text-xl text-white/80 mb-8 max-w-2xl mx-auto">
           專業級色彩量化演算法，從任何圖片中提取精緻、和諧且實用的配色方案。

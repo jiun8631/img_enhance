@@ -1,6 +1,6 @@
 // src/components/GradientGenerator.tsx
 
-import React, { useState, useEffect, useCallback, useRef } from 'react' // 導入 useRef
+import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { Copy, Layers, Download, Wand2 } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -24,7 +24,6 @@ const GradientGenerator: React.FC<GradientGeneratorProps> = ({ palette }) => {
     type: 'linear', angle: 90, position: 'center'
   })
   
-  // 【關鍵】創建一個 ref 來指向我們的預覽 div
   const previewRef = useRef<HTMLDivElement>(null);
 
   const generateRandomGradient = useCallback(() => {
@@ -88,29 +87,21 @@ const GradientGenerator: React.FC<GradientGeneratorProps> = ({ palette }) => {
     toast.success('漸層 CSS 已複製！');
   }
 
-  // 【釜底抽薪的終極修復方案】
   const handleDownloadImage = useCallback(() => {
-    // 直接檢查 ref 是否指向了一個元素
     if (previewRef.current === null) {
       toast.error('無法找到預覽元素');
       return;
     }
-    
     if (!gradientCSS) {
         toast.error('沒有可導出的漸層');
         return;
     }
-
     toast.loading('正在生成高清圖片...', { id: 'download-gradient' });
-
     toPng(previewRef.current, { 
       cacheBust: true, 
-      // 指定導出的尺寸
       width: 1920,
       height: 1080,
-      // 指定像素比為1，確保尺寸是 1920x1080 而不是 2x
       pixelRatio: 1, 
-      // 在導出時，臨時覆蓋樣式，去掉圓角和邊框
       style: {
         borderRadius: '0',
         border: 'none',
@@ -142,7 +133,6 @@ const GradientGenerator: React.FC<GradientGeneratorProps> = ({ palette }) => {
         </button>
       </div>
       
-      {/* 【關鍵】將 ref 綁定到這個 div */}
       <div ref={previewRef} className="w-full h-48 rounded-lg mb-4 border border-white/10 transition-all bg-gray-900" style={{ background: gradientCSS }} />
       
       <AnimatePresence>
@@ -155,8 +145,10 @@ const GradientGenerator: React.FC<GradientGeneratorProps> = ({ palette }) => {
         )}
       </AnimatePresence>
       
+      {/* 【這就是終極修復！】 */}
       <div className="relative bg-black/50 p-4 rounded-md font-mono text-sm text-cyan-300 border border-white/10 mb-4 overflow-x-auto">
-        <code className="whitespace-nowrap"><span className="text-purple-400">background</span>: {gradientCSS};</code>
+        {/* 從 `whitespace-nowrap` 改為 `break-all` */}
+        <code className="break-all"><span className="text-purple-400">background</span>: {gradientCSS};</code>
         <button onClick={copyCSS} className="absolute top-2 right-2 p-2 text-white/60 hover:text-white hover:bg-white/20 rounded-md transition-colors" aria-label="複製 CSS"><Copy className="w-4 h-5" /></button>
       </div>
       <button onClick={handleDownloadImage} className="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-3 px-6 rounded-lg transition-colors flex items-center justify-center">

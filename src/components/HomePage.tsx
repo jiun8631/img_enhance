@@ -9,8 +9,9 @@ import { motion } from 'framer-motion'
 import quantize from 'quantize'
 
 import TemplatePreview from './TemplatePreview'
-// 【第 1 處修改：在 import 區塊加入這行】
 import AccessibilityChecker from './AccessibilityChecker'
+// 【第 1 處修改：引入我們剛剛建立的新元件】
+import GradientGenerator from './GradientGenerator'
 
 export default function HomePage() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
@@ -272,8 +273,10 @@ export default function HomePage() {
                 
                 <TemplatePreview palette={palette} />
 
-                {/* 【第 2 處修改：在 UI 預覽下方加入這行新元件】 */}
                 <AccessibilityChecker palette={palette} />
+                
+                {/* 【第 2 處修改：在 UI 預覽下方加入新元件，並傳入 palette】 */}
+                <GradientGenerator palette={palette} />
 
               </motion.div>
             ) : (

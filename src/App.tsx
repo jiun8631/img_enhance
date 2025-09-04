@@ -4,9 +4,9 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
 import Navbar from '@/components/Navbar'
 import HomePage from '@/components/HomePage'
-import BlogIndexPage from '@/components/BlogIndexPage' // 导入博客列表页
-import ArticlePage from '@/components/ArticlePage'   // 导入文章详情页
-import AboutPage from '@/components/AboutPage'; // 1. 導入我們的新頁面組件
+import BlogIndexPage from '@/components/BlogIndexPage'
+import ArticlePage from '@/components/ArticlePage'
+import AboutPage from '@/components/AboutPage'
 
 function AppContent() {
   return (
@@ -17,7 +17,7 @@ function AppContent() {
           <Route path="/" element={<HomePage />} />
           <Route path="/blog" element={<BlogIndexPage />} />
           <Route path="/blog/:articleId" element={<ArticlePage />} />
-          <Route path="/about" element={<AboutPage />} /> {/* 2. 新增這一行路由規則 */}
+          <Route path="/about" element={<AboutPage />} />
         </Routes>
       </main>
       <Toaster 
@@ -28,6 +28,7 @@ function AppContent() {
         }}
       />
       
+    </div> // <-- 這是根 div 的 closing tag，它是存在的
   )
 }
 

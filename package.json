@@ -5,8 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "prebuild": "node generate-sitemap-routes.mjs", // <-- 新增：在 build 前運行腳本
-    "build": "npm run prebuild && tsc -b && vite build", // <-- 修改：確保 build 時也運行
+    "prebuild": "node generate-sitemap-routes.mjs", 
+    "build": "npm run prebuild && tsc -b && vite build", 
     "lint": "eslint .",
     "preview": "vite preview"
   },

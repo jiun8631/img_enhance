@@ -4,11 +4,11 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "yes | pnpm install && vite",
-    "build": "tsc -b && vite build",
-    "build:prod": "yes | pnpm install && rm -rf node_modules/.vite-temp && tsc -b && BUILD_MODE=prod vite build",
-    "lint": "yes | pnpm install && eslint .",
-    "preview": "yes | pnpm install && vite preview"
+    "dev": "vite",
+    "prebuild": "node generate-sitemap-routes.mjs", // <-- 新增：在 build 前運行腳本
+    "build": "npm run prebuild && tsc -b && vite build", // <-- 修改：確保 build 時也運行
+    "lint": "eslint .",
+    "preview": "vite preview"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",

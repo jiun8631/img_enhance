@@ -1,0 +1,6 @@
+# .gitignore
+
+# ... 其他內容 ...
+
+# Generated sitemap routes
+sitemap-routes.json

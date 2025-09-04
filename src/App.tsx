@@ -28,6 +28,15 @@ function AppContent() {
         }}
       />
       
+      {/* 廣告部分 */}
+      <div className="fixed right-4 top-1/2 transform -translate-y-1/2 w-40 h-96 bg-gray-800/90 backdrop-blur-sm border border-gray-700 rounded-lg z-30 hidden lg:flex">
+        <div className="h-full flex items-center justify-center text-gray-400 text-sm text-center px-2">廣告區域</div>
+      </div>
+      <div className="fixed bottom-0 left-0 w-full bg-gray-800/90 backdrop-blur-sm border-t border-gray-700 z-40 hidden md:block">
+        <div className="container mx-auto px-4 py-4 text-center text-gray-400 text-sm">
+          廣告區域 - 底部橫幅
+        </div> {/* <-- 我上次在這裡不小心把外層的 </div> 刪掉了 */}
+      </div>
     </div> // <-- 這是根 div 的 closing tag，它是存在的
   )
 }

@@ -67,6 +67,7 @@
     "zod": "^3.24.1"
   },
   "devDependencies": {
+    "@tailwindcss/typography": "^0.5.13",
     "@eslint/js": "^9.15.0",
     "@types/chroma-js": "^2.4.4",
     "@types/node": "^22.10.7",

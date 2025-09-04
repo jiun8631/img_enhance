@@ -6,6 +6,7 @@ import Navbar from '@/components/Navbar'
 import HomePage from '@/components/HomePage'
 import BlogIndexPage from '@/components/BlogIndexPage' // 导入博客列表页
 import ArticlePage from '@/components/ArticlePage'   // 导入文章详情页
+import AboutPage from '@/components/AboutPage'; // 1. 導入我們的新頁面組件
 
 function AppContent() {
   return (
@@ -16,6 +17,7 @@ function AppContent() {
           <Route path="/" element={<HomePage />} />
           <Route path="/blog" element={<BlogIndexPage />} />
           <Route path="/blog/:articleId" element={<ArticlePage />} />
+          <Route path="/about" element={<AboutPage />} /> {/* 2. 新增這一行路由規則 */}
         </Routes>
       </main>
       <Toaster 
@@ -26,14 +28,6 @@ function AppContent() {
         }}
       />
       
-      {/* 广告部分保持不变 */}
-      <div className="fixed right-4 top-1/2 transform -translate-y-1/2 w-40 h-96 bg-gray-800/90 backdrop-blur-sm border border-gray-700 rounded-lg z-30 hidden lg:flex">
-        <div className="h-full flex items-center justify-center text-gray-400 text-sm text-center px-2">广告区域</div>
-      </div>
-      <div className="fixed bottom-0 left-0 w-full bg-gray-800/90 backdrop-blur-sm border-t border-gray-700 z-40 hidden md:block">
-        <div className="container mx-auto px-4 py-4 text-center text-gray-400 text-sm">广告区域 - 底部横幅</div>
-      </div>
-    </div>
   )
 }
 

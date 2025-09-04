@@ -23,7 +23,7 @@ export const articles: Article[] = [
     title: '🚀 AI 顏色配色生成器使用指南',
     content: (
       <div>
-        <h3>三步上手，釋放色彩創造力</h3>
+        <h3><span style="color: red;"><a style="color: red !important;"><strong>三步上手，釋放色彩創造力</strong></a></span></h3>
         <p>歡迎使用我們的 AI 顏色配色生成器！這是一個強大的線上配色工具，旨在幫助設計師、開發者和內容創作者從任何圖片中快速提取專業、和諧的調色板。無需安裝任何軟體，完全免費。</p>
         <ol>
           <li><strong>上傳圖片獲取靈感：</strong> 點擊或拖拽任何您喜歡的圖片到上傳區域。無論是壯麗的自然風光、精美的藝術插畫，還是簡潔的 UI 介面截圖，我們的工具都能精準分析其中的色彩構成。</li>
@@ -38,7 +38,7 @@ export const articles: Article[] = [
   // --- 文章 2：色彩的力量 (已優化) ---
   {
     id: 'power-of-color',
-    label: '色彩的力量',
+    label: '色彩的美學',
     icon: BarChart2,
     title: '色彩的力量：提升品牌感知的 SEO 秘密',
     content: (
@@ -86,11 +86,11 @@ export const articles: Article[] = [
     id: 'web-design-trends',
     label: '設計趨勢',
     icon: TrendingUp,
-    title: '2024年網頁設計色彩趨勢大揭秘',
+    title: '2025年網頁設計色彩趨勢大揭秘',
     content: (
       <div>
         <h3>擁抱自然與科技的融合</h3>
-        <p>2024年的網頁設計色彩趨勢，正朝著更加人性化和情感化的方向發展。設計師們正在尋求一種能夠在數位體驗中喚起舒適感和真實感的調色板。</p>
+        <p>2025年的網頁設計色彩趨勢，正朝著更加人性化和情感化的方向發展。設計師們正在尋求一種能夠在數位體驗中喚起舒適感和真實感的調色板。</p>
         <h4>趨勢一：大地色系的回歸</h4>
         <p>陶土色、沙色、橄欖綠和赤褐色等溫暖的大地色調正大行其道。它們傳達出一種穩定、可靠和親近自然的感覺。您可以嘗試上傳一張沙漠或森林的圖片到我們的工具中，來獲取一套時尚的大地色調色板。</p>
         <h4>趨勢二：充滿活力的漸層</h4>
@@ -124,6 +124,7 @@ export const articles: Article[] = [
     ),
   },
 
+  
   // --- 【未來新增文章的範例】 ---
   // {
   //   id: 'new-article-example',

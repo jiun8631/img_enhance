@@ -1,10 +1,15 @@
 // src/content/articles.tsx
 import { BookOpen, BarChart2, Palette, TrendingUp, ShieldCheck } from 'lucide-react'
+// 【關鍵修復】從 'react' 導入 'ComponentType'，這是一個更精確的類型
+import type { ComponentType } from 'react';
 
+// 這是一個 TypeScript 類型定義
 export type Article = {
   id: string;
   label: string;
-  icon: React.ElementType;
+  // 【關鍵修復】將 icon 的類型從 React.ElementType 改為 ComponentType<{ className?: string }>
+  // 這明確告訴 TypeScript，icon 是一個可以接受 className 屬性的 React 組件
+  icon: ComponentType<{ className?: string }>;
   title: string;
   content: JSX.Element;
 };
@@ -23,7 +28,7 @@ export const articles: Article[] = [
     title: '🚀 AI 顏色配色生成器使用指南',
     content: (
       <div>
-        <h3><span style="color: red;"><a style="color: red !important;"><strong>三步上手，釋放色彩創造力</strong></a></span></h3>
+        <h3>三步上手，釋放色彩創造力</h3>
         <p>歡迎使用我們的 AI 顏色配色生成器！這是一個強大的線上配色工具，旨在幫助設計師、開發者和內容創作者從任何圖片中快速提取專業、和諧的調色板。無需安裝任何軟體，完全免費。</p>
         <ol>
           <li><strong>上傳圖片獲取靈感：</strong> 點擊或拖拽任何您喜歡的圖片到上傳區域。無論是壯麗的自然風光、精美的藝術插畫，還是簡潔的 UI 介面截圖，我們的工具都能精準分析其中的色彩構成。</li>
@@ -38,7 +43,7 @@ export const articles: Article[] = [
   // --- 文章 2：色彩的力量 (已優化) ---
   {
     id: 'power-of-color',
-    label: '色彩的美學',
+    label: '色彩的力量',
     icon: BarChart2,
     title: '色彩的力量：提升品牌感知的 SEO 秘密',
     content: (
@@ -60,7 +65,7 @@ export const articles: Article[] = [
     ),
   },
   
-  // --- 【全新】文章 3：理解色彩和諧 ---
+  // --- 文章 3：色彩和諧 ---
   {
     id: 'color-harmony',
     label: '色彩和諧',
@@ -75,22 +80,22 @@ export const articles: Article[] = [
         <h4>2. 互補色 (Complementary)</h4>
         <p>在色輪上正對的兩種顏色（例如紅色和綠色）。它們對比強烈，充滿活力，能瞬間抓住用戶的眼球。適合用於需要突出重點的電商網站或活動頁面。</p>
         <h4>3. 三色組 (Triadic)</h4>
-        <p>在色輪上等距分佈的三種顏色。它提供了強烈的視覺對比，同時不失和諧與平衡，即使顏色飽和度很高也同樣適用。這種組合充滿活力，深受年輕品牌的喜愛。</p>
+        <p>在色輪上等距分佈的三種顏色。它提供了強烈的視覺對比，同時不失和諧與平衡，即使顏色飽 Tarifi度很高也同樣適用。這種組合充滿活力，深受年輕品牌的喜愛。</p>
         <p>下次當您使用我們的工具時，不妨切換不同的「模式」，親身體驗這些色彩和諧法則帶來的神奇效果。</p>
       </div>
     ),
   },
 
-  // --- 【全新】文章 4：網頁設計色彩趨勢 ---
+  // --- 文章 4：網頁設計色彩趨勢 ---
   {
     id: 'web-design-trends',
     label: '設計趨勢',
     icon: TrendingUp,
-    title: '2025年網頁設計色彩趨勢大揭秘',
+    title: '2024年網頁設計色彩趨勢大揭秘',
     content: (
       <div>
         <h3>擁抱自然與科技的融合</h3>
-        <p>2025年的網頁設計色彩趨勢，正朝著更加人性化和情感化的方向發展。設計師們正在尋求一種能夠在數位體驗中喚起舒適感和真實感的調色板。</p>
+        <p>2024年的網頁設計色彩趨勢，正朝著更加人性化和情感化的方向發展。設計師們正在尋求一種能夠在數位體驗中喚起舒適感和真實感的調色板。</p>
         <h4>趨勢一：大地色系的回歸</h4>
         <p>陶土色、沙色、橄欖綠和赤褐色等溫暖的大地色調正大行其道。它們傳達出一種穩定、可靠和親近自然的感覺。您可以嘗試上傳一張沙漠或森林的圖片到我們的工具中，來獲取一套時尚的大地色調色板。</p>
         <h4>趨勢二：充滿活力的漸層</h4>
@@ -101,7 +106,7 @@ export const articles: Article[] = [
     ),
   },
 
-  // --- 【全新】文章 5：色彩無障礙性 ---
+  // --- 文章 5：色彩無障礙性 ---
   {
     id: 'accessibility',
     label: '無障礙設計',

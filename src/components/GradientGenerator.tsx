@@ -28,7 +28,7 @@ const GradientGenerator: React.FC<GradientGeneratorProps> = ({ palette }) => {
 
   const generateRandomGradient = useCallback(() => {
     if (palette.length < 3) {
-      if (palette.length > 0) toast.error("需要至少3種顏色來施展魔法");
+      if (palette.length > 0) toast.error("需要至少3种颜色来施展魔法");
       return;
     };
 
@@ -50,7 +50,7 @@ const GradientGenerator: React.FC<GradientGeneratorProps> = ({ palette }) => {
       const bgColor = chroma.average(selected, 'lch').hex();
       setGradientConfig({ type: 'mesh', angle: 0, position: 'center' });
       setGradientCSS(`${meshLayers.join(', ')}, radial-gradient(circle, ${bgColor}, ${chroma(bgColor).darken(1).hex()})`);
-      toast.success('網格魔法已施展！效果華麗！ ✨');
+      toast.success('网格魔法已施展！效果华丽！ ✨');
     } else {
       selected.sort((a,b) => chroma(a).luminance() - chroma(b).luminance());
       const smoothPalette = chroma.scale(selected).mode('lch').colors(10);
@@ -68,7 +68,7 @@ const GradientGenerator: React.FC<GradientGeneratorProps> = ({ palette }) => {
         case 'conic': css = `conic-gradient(from ${randomAngle}deg at ${randomPosition}, ${colorStops})`; break;
       }
       setGradientCSS(css);
-      toast.success('絲滑漸層已生成！🎨');
+      toast.success('丝滑渐层已生成！🎨');
     }
   }, [palette]);
 
@@ -84,19 +84,19 @@ const GradientGenerator: React.FC<GradientGeneratorProps> = ({ palette }) => {
   const copyCSS = () => {
     if (!gradientCSS) return;
     navigator.clipboard.writeText(`background: ${gradientCSS};`);
-    toast.success('漸層 CSS 已複製！');
+    toast.success('渐层 CSS 已复制！');
   }
 
   const handleDownloadImage = useCallback(() => {
     if (previewRef.current === null) {
-      toast.error('無法找到預覽元素');
+      toast.error('无法找到预览元素');
       return;
     }
     if (!gradientCSS) {
-        toast.error('沒有可導出的漸層');
+        toast.error('没有可导出的渐层');
         return;
     }
-    toast.loading('正在生成高清圖片...', { id: 'download-gradient' });
+    toast.loading('正在生成高清图片...', { id: 'download-gradient' });
     toPng(previewRef.current, { 
       cacheBust: true, 
       width: 1920,
@@ -112,10 +112,10 @@ const GradientGenerator: React.FC<GradientGeneratorProps> = ({ palette }) => {
         link.download = `gradient-${gradientConfig.type}.png`;
         link.href = dataUrl;
         link.click();
-        toast.success('1080p 漸層圖片下載成功！', { id: 'download-gradient' });
+        toast.success('1080p 渐层图片下载成功！', { id: 'download-gradient' });
       })
       .catch((err) => {
-        toast.error('圖片生成失敗，請再試一次', { id: 'download-gradient' });
+        toast.error('图片生成失败，请再试一次', { id: 'download-gradient' });
         console.error('oops, something went wrong!', err);
       });
   }, [gradientCSS, gradientConfig.type]);
@@ -125,9 +125,9 @@ const GradientGenerator: React.FC<GradientGeneratorProps> = ({ palette }) => {
       <div className="flex justify-between items-center mb-4">
         <h3 className="text-xl font-bold text-white flex items-center">
           <Layers className="w-5 h-5 mr-3 text-cyan-400" />
-          AI 魔法漸層產生器
+          AI 魔法渐层产生器
         </h3>
-        <button onClick={generateRandomGradient} className="p-2 bg-purple-600 hover:bg-purple-700 rounded-full text-white transition-colors flex items-center gap-2 pl-4" aria-label="隨機生成漸層">
+        <button onClick={generateRandomGradient} className="p-2 bg-purple-600 hover:bg-purple-700 rounded-full text-white transition-colors flex items-center gap-2 pl-4" aria-label="随机生成渐层">
           <Wand2 className="w-5 h-5" />
           <span className="text-sm font-semibold pr-2">施展魔法</span>
         </button>
@@ -139,21 +139,21 @@ const GradientGenerator: React.FC<GradientGeneratorProps> = ({ palette }) => {
         {isMesh && (
           <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
              <div className="bg-purple-900/20 border border-purple-500/30 text-purple-300 text-sm p-3 rounded-lg mb-4">
-               <b>網格漸層模式：</b>此模式下無法手動微調。再次點擊「施展魔法」來探索更多驚喜。
+               <b>网格渐层模式：</b>此模式下无法手动微调。再次点击「施展魔法」来探索更多惊喜。
              </div>
           </motion.div>
         )}
       </AnimatePresence>
       
-      {/* 【這就是終極修復！】 */}
+      {/* 【这就是终极修复！】 */}
       <div className="relative bg-black/50 p-4 rounded-md font-mono text-sm text-cyan-300 border border-white/10 mb-4 overflow-x-auto">
-        {/* 從 `whitespace-nowrap` 改為 `break-all` */}
+        {/* 从 `whitespace-nowrap` 改为 `break-all` */}
         <code className="break-all"><span className="text-purple-400">background</span>: {gradientCSS};</code>
-        <button onClick={copyCSS} className="absolute top-2 right-2 p-2 text-white/60 hover:text-white hover:bg-white/20 rounded-md transition-colors" aria-label="複製 CSS"><Copy className="w-4 h-5" /></button>
+        <button onClick={copyCSS} className="absolute top-2 right-2 p-2 text-white/60 hover:text-white hover:bg-white/20 rounded-md transition-colors" aria-label="复制 CSS"><Copy className="w-4 h-5" /></button>
       </div>
       <button onClick={handleDownloadImage} className="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-3 px-6 rounded-lg transition-colors flex items-center justify-center">
         <Download className="w-5 h-5 mr-2" />
-        導出為 1080p 高清圖片
+        导出为 1080p 高清图片
       </button>
     </motion.div>
   )

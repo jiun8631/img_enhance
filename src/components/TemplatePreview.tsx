@@ -104,7 +104,7 @@ export default function TemplatePreview({ palette }: TemplatePreviewProps) {
                   color: buttonTextColor,
                 }}
               >
-                了解更多
+                瞭解更多
               </button>
             </div>
           </div>

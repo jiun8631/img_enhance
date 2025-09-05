@@ -12,9 +12,9 @@ export default function ArticlePage() {
     return (
       <div className="text-center text-white py-20">
         <h1 className="text-4xl font-bold mb-4">404 - 未找到文章</h1>
-        <p className="text-white/80 mb-8">您要找的文章不存在或已被移動。</p>
+        <p className="text-white/80 mb-8">您要找的文章不存在或已被移动。</p>
         <Link to="/" className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition-colors">
-          返回首頁
+          返回首页
         </Link>
       </div>
     )
@@ -24,7 +24,7 @@ export default function ArticlePage() {
     <div className="max-w-3xl mx-auto text-white py-8">
       <Link to="/" className="inline-flex items-center gap-2 text-blue-400 hover:text-blue-300 mb-8 transition-colors">
         <ArrowLeft className="w-4 h-4" />
-        返回首頁
+        返回首页
       </Link>
       <article className="prose prose-invert prose-p:text-white/80 prose-headings:text-white max-w-none">
         <h1>{article.title}</h1>
